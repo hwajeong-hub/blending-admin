@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공지사항 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="notice">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">공지사항</h1>
+      <p class="page-desc">최신 공지사항을 확인할 수 있습니다.</p>
+    </header>
+
+    <section class="section" id="noticeList">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="selected-count" data-count>0개 선택</span>
+          <form class="field search" data-search role="search">
+            <input placeholder="제목" aria-label="제목 검색">
+            <button class="field-icon-btn" aria-label="검색"><i class="ic ic-search"></i></button>
+          </form>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-line" id="btnEdit">수정</button>
+          <button class="btn btn-line" id="btnDelete">삭제</button>
+          <a class="btn btn-primary" href="notice-form.html">등록</a>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script src="assets/notice-store.js?v=20261102105140"></script>
+<script>
+  const { list, toast, confirm, esc } = Blending;
+  const table = list({
+    root: '#noticeList',
+    data: NoticeStore.all(),
+    searchKeys: ['title'],
+    columns: [
+      { key: 'id', label: '번호' },
+      { key: 'title', label: '제목', fill: true,
+        render: (r) => `<a href="notice-form.html?id=${r.id}">${r.pinned ? '[고정] ' : ''}${esc(r.title)}</a>` },
+      { key: 'date', label: '작성일자' },
+    ],
+    empty: ['등록된 공지사항이 없습니다.', '새 공지사항을 등록해 주세요.'],
+  });
+
+  // 다른 페이지에서 넘어온 완료 토스트
+  const done = sessionStorage.getItem('blending.toast');
+  if (done) { sessionStorage.removeItem('blending.toast'); toast(done); }
+
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    const sel = table.selected;
+    if (sel.length !== 1) return toast(sel.length ? '수정할 공지사항을 1개만 선택해주세요.' : '공지사항을 선택해주세요.', 'warning');
+    location.href = `notice-form.html?id=${sel[0].id}`;
+  });
+  document.getElementById('btnDelete').addEventListener('click', async () => {
+    const sel = table.selected;
+    if (!sel.length) return toast('공지사항을 선택해주세요.', 'warning');
+    const ok = await confirm({ message: '선택하신 공지사항을 삭제하시겠습니까?', desc: '삭제 후 복구는 불가능합니다.', ok: '삭제' });
+    if (!ok) return;
+    NoticeStore.remove(sel.map((n) => n.id));
+    table.set(NoticeStore.all());
+    toast('공지사항이 삭제되었습니다.');
+  });
+</script>
+</body>
+</html>

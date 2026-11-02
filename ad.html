@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>광고관리 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="ad">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">광고관리</h1>
+      <p class="page-desc">광고를 수정하고 관리할 수 있습니다.</p>
+    </header>
+
+    <div class="section-summary">
+      <div class="summary" id="summary"></div>
+    </div>
+
+    <section class="section" id="adList">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="selected-count" data-count>0개 선택</span>
+          <form class="field search" data-search role="search">
+            <input placeholder="번호, 아이디, 키워드, 상품명, MID" aria-label="광고 검색">
+            <button class="field-icon-btn" aria-label="검색"><i class="ic ic-search"></i></button>
+          </form>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-line" id="btnLogic">로직관리</button>
+          <button class="btn btn-line" id="btnUpload"><i class="ic ic-upload"></i>발주데이터 업로드</button>
+          <button class="btn btn-line" data-export="순위데이터"><i class="ic ic-download"></i>순위데이터 추출</button>
+          <button class="btn btn-line" data-export="발주데이터"><i class="ic ic-download"></i>발주데이터 추출</button>
+          <button class="btn btn-line" id="btnEdit">수정</button>
+          <button class="btn btn-line" id="btnDelete">삭제</button>
+          <button class="btn btn-primary" id="btnExtend">연장</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<!-- 순위 보고서 (가격비교 / 플러스스토어) -->
+<div class="dim" id="rankModal">
+  <div class="modal modal-rank" role="dialog" aria-modal="true" aria-labelledby="rankTitle">
+    <h2 class="modal-title" id="rankTitle">광고의 순위 보고서를 확인해 주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="seg rank-tabs" role="tablist" aria-label="순위 구분">
+      <button type="button" role="tab" data-rank-tab="cmp">가격비교</button>
+      <button type="button" role="tab" data-rank-tab="plus">플러스스토어</button>
+    </div>
+    <div class="rank-card rank-summary" id="rankSummary" role="tabpanel"></div>
+    <div class="rank-card rank-history" id="rankHistory" tabindex="0" aria-label="일자별 순위"></div>
+    <p class="rank-note">* 등락 표시는 시작일 순위 기준 대비 등하락입니다.</p>
+    <div class="cta"><button type="button" class="btn btn-line" data-close>닫기</button></div>
+  </div>
+</div>
+
+<!-- 로직관리 -->
+<div class="dim" id="logicModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="logicTitle" id="logicForm" novalidate>
+    <h2 class="modal-title" id="logicTitle">로직관리</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div>
+      <ul class="bullets">
+        <li>유입수를 매체별로 분배할 비율을 설정합니다.</li>
+        <li>합계는 100%여야 합니다.</li>
+        <li id="logicBasis"></li>
+      </ul>
+      <div class="logic-rows" id="logicRows" style="margin-top:20px"></div>
+      <div class="logic-total">
+        <span class="sum" id="logicSum">합계 100%</span>
+        <span class="inflow" id="logicInflow"></span>
+        <button type="button" class="link-btn" id="logicEven">균등분배</button>
+      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary">수정</button>
+    </div>
+  </form>
+</div>
+
+<!-- 발주데이터 업로드 -->
+<div class="dim" id="uploadModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle" id="uploadForm" novalidate>
+    <h2 class="modal-title" id="uploadTitle">광고 엑셀 업로드</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body">
+      <div class="box">
+        <label class="box-label" for="uUser">유저</label>
+        <label class="field">
+          <select id="uUser" name="user"><option value="">유저를 선택해주세요</option><option>wwj1215</option><option>prott</option><option>freeguri</option><option>orient6368</option></select>
+          <i class="ic ic-chevron-down"></i>
+        </label>
+      </div>
+      <div class="box">
+        <span class="box-label">엑셀 파일</span>
+        <label class="file"><input type="file" name="file" accept=".xlsx,.xls"><span class="file-pick">파일 선택</span><span class="file-name">선택된 파일 없음</span></label>
+        <p class="box-helper">로직구분은 로직 1~로직 4 중 하나만 입력해주세요.</p>
+      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="uploadSubmit" disabled>등록</button>
+    </div>
+  </form>
+</div>
+
+<!-- 수정 (Figma 377:48969) -->
+<div class="dim" id="editModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle" id="editForm" novalidate>
+    <h2 class="modal-title" id="editTitle">광고의 수정 내용을 입력해주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body">
+      <div class="box">
+        <label class="box-label" for="eUrl">상품 URL</label>
+        <div class="field"><input id="eUrl" name="url" type="url" placeholder="URL을 입력해주세요"><span class="req" aria-hidden="true">*</span></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="eCmpUrl">가격비교 URL</label>
+        <div class="field"><input id="eCmpUrl" name="cmpUrl" type="url" placeholder="가격비교 URL을 입력해주세요"></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="eKeyword">순위조회 키워드</label>
+        <div class="field"><input id="eKeyword" name="keyword" placeholder="작업과 무관한 순위조회용 키워드를 입력해주세요"><span class="req" aria-hidden="true">*</span></div>
+      </div>
+      <div class="box">
+        <span class="box-label" id="eLogicLabel">로직</span>
+        <div class="options options-grid" role="radiogroup" aria-labelledby="eLogicLabel">
+          <label><input type="radio" name="logic" value="로직 1"><span>로직 1</span></label>
+          <label><input type="radio" name="logic" value="로직 2"><span>로직 2</span></label>
+          <label><input type="radio" name="logic" value="로직 3"><span>로직 3</span></label>
+          <label><input type="radio" name="logic" value="로직 4"><span>로직 4</span></label>
+        </div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="eMemo">메모</label>
+        <textarea class="textarea" id="eMemo" name="memo" placeholder="내용을 입력해주세요"></textarea>
+      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="editSubmit" disabled>수정</button>
+    </div>
+  </form>
+</div>
+
+<!-- 연장 (Figma 342:36414) -->
+<div class="dim" id="extendModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="extendTitle" id="extendForm" novalidate>
+    <h2 class="modal-title" id="extendTitle">광고의 연장 일수를 선택해 주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body">
+      <div class="box">
+        <label class="box-label" for="exIds">번호</label>
+        <div class="field is-disabled"><input id="exIds" disabled></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="exDays">연장 일수</label>
+        <div class="field"><input id="exDays" name="days" inputmode="numeric" maxlength="3" placeholder="10"><span class="req" aria-hidden="true">*</span></div>
+        <!-- 빠른 선택: 누르면 위 입력칸에 채워진다 -->
+        <div class="options" role="radiogroup" aria-label="빠른 선택">
+          <label><input type="radio" name="preset" value="1"><span>1일</span></label>
+          <label><input type="radio" name="preset" value="3"><span>3일</span></label>
+          <label><input type="radio" name="preset" value="7"><span>7일</span></label>
+          <label><input type="radio" name="preset" value="10"><span>10일</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="extendSubmit">수정</button>
+    </div>
+  </form>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const { list, toast, confirm, openModal, closeModal, esc } = Blending;
+  const today = '2026-11-02';
+  const soon = (d) => d >= today && d <= '2026-11-05';
+  const STATUS = { normal: ['정상', 'status-normal'], error: ['오류', 'status-error'], wait: ['대기', 'status-wait'] };
+  const seed = [
+    ['wwj1215', 'normal', 1, '아보카도', '3위', '14위', '최상급 아보카도 직수입 대과 특대과', '', 81, '2026-07-27', '2026-11-03'],
+    ['wwj1215', 'error', 1, '아보카도', '3위', '14위', '최상급 아보카도 직수입 대과 특대과', '', 81, '2026-07-27', '2026-11-03'],
+    ['wwj1215', 'wait', 1, '아보카도', '3위', '14위', '최상급 아보카도 직수입 대과 특대과', '', 81, '2026-07-27', '2026-11-03'],
+    ['prott', 'normal', 4, '류신', '2위', '순위 밖', '프로탄탄 류신 단백질 수용성 70000mg, 1개', '58492227597', 93, '2026-07-15', '2026-11-11'],
+    ['freeguri', 'normal', 1, '바지걸이', '1위', '23위', '[스토리텡거] 쏙쏙 심플 바지&치마걸이 논슬립 사이즈조절 수납력증가 집게자국 없는 옷걸이 10개입', '', 58, '2026-08-19', '2026-10-17'],
+    ['prott', 'normal', 4, '베르베린', '10위', '6위', '한미양행 프로탄탄 베르베린 플러스 800mg x 60정, 1개', '59047695942', 123, '2026-06-15', '2026-11-11'],
+    ['prott', 'normal', 1, '베르베린', '10위', '6위', '한미양행 프로탄탄 베르베린 플러스 800mg x 60정, 1개', '59047695942', 123, '2026-06-15', '2026-11-11'],
+    ['orient6368', 'normal', 1, '케겔운동', '5위', '17위', '에제르 자동 케겔운동기구', '60242211792', 164, '2026-05-05', '2026-10-31'],
+    ['orient6368', 'normal', 1, '케겔운동기구', '5위', '17위', '에제르 자동 케겔운동기구', '60242211792', 164, '2026-05-05', '2026-10-31'],
+  ];
+  let data = Array.from({ length: 48 }, (_, i) => {
+    const s = seed[i % seed.length];
+    return { id: 106850 - i, userId: s[0], status: i < 3 ? s[1] : (i % 13 === 5 ? 'error' : i % 11 === 7 ? 'wait' : 'normal'),
+      logic: `로직 ${s[2]}`, keyword: s[3], cmp: s[4], plus: s[5], product: s[6], mid: '90887435466', cmpMid: s[7],
+      // TODO: 실제 상품 URL로 교체 (프로토타입은 스마트스토어 상품 주소 형식을 임시로 사용)
+      url: `https://smartstore.naver.com/main/products/${90887435466 + i}`,
+      cmpUrl: s[7] ? `https://search.shopping.naver.com/catalog/${s[7]}` : '', memo: '',
+      days: s[8], start: s[9], end: s[10] };
+  });
+
+  // 요약 카드 항목 = 표 필터. 누르면 활성화되고 아래 표가 그 조건으로 바뀐다
+  const METRICS = [
+    { key: 'all',    title: '전체',     desc: '보유한 전체 슬롯 개수',          test: () => true },
+    { key: 'normal', title: '정상',     desc: '정상 구동중인 슬롯 개수',        test: (r) => r.status === 'normal' },
+    { key: 'error',  title: '오류',     desc: '수정이 필요한 슬롯 개수',        test: (r) => r.status === 'error' },
+    { key: 'wait',   title: '대기',     desc: '정보 수집 대기중인 슬롯 개수',   test: (r) => r.status === 'wait' },
+    { key: 'soon',   title: '마감예정', desc: '오늘 마감예정인 슬롯 개수',      test: (r) => soon(r.end) },
+    { key: 'ended',  title: '종료',     desc: '종료된 지 1년 이내인 슬롯 개수', test: (r) => r.end < today },
+  ];
+  let metric = 'all';
+  const filtered = () => data.filter(METRICS.find((m) => m.key === metric).test);
+  function renderSummary() {
+    document.getElementById('summary').innerHTML = METRICS.map((m) =>
+      `<button type="button" class="summary-item metric${m.key === metric ? ' is-active' : ''}" data-metric="${m.key}" aria-pressed="${m.key === metric}">
+         <span class="summary-title">${m.title}<small>${m.desc}</small></span>
+         <span class="summary-value">${data.filter(m.test).length.toLocaleString()}개</span>
+       </button>`).join('');
+  }
+  document.getElementById('summary').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-metric]');
+    if (!b) return;
+    metric = b.dataset.metric;
+    renderSummary();
+    table.set(filtered());
+  });
+
+  const table = list({
+    root: '#adList',
+    data,
+    searchKeys: ['id', 'userId', 'keyword', 'product', 'mid', 'cmpMid'],
+    columns: [
+      { key: 'id', label: '번호', sort: true },
+      { key: 'userId', label: '아이디' },
+      { key: 'status', label: '상태', render: (r) => `<span class="status ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span>` },
+      { key: 'logic', label: '로직구분', sort: true },
+      // 텍스트에 마우스를 올리면 바로 아래에 툴팁 (DESIGN.md §3.8 Tooltip)
+      { key: 'keyword', label: '키워드', render: (r) => `<span data-tip="${esc(r.keyword)}">${esc(r.keyword)}</span>` },
+      { key: 'cmp', label: '가격비교', render: (r) => `<button type="button" class="cell-link" data-rank="${r.id}" data-type="cmp" data-tip="순위보기">${esc(r.cmp)}</button>` },
+      { key: 'plus', label: '플러스', render: (r) => `<button type="button" class="cell-link" data-rank="${r.id}" data-type="plus" data-tip="순위보기">${esc(r.plus)}</button>` },
+      // 상품명은 상품 페이지로 가는 링크 (새 탭), 툴팁은 잘린 상품명 전체
+      { key: 'product', label: '상품명', fill: true,
+        render: (r) => `<a class="cell-link cell-ellipsis" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" data-tip="${esc(r.product)}">${esc(r.product)}</a>` },
+      { key: 'mid', label: '상품MID' },
+      { key: 'cmpMid', label: '가격비교 MID' },
+      { key: 'days', label: '작업일수', render: (r) => `${r.days}일` },
+      { key: 'start', label: '작업시작일', sort: true },
+      { key: 'end', label: '작업종료일', sort: true, render: (r) => `<span class="${soon(r.end) ? 'text-error' : ''}">${r.end}</span>` },
+      { key: 'edit', label: '수정', render: (r) => `<button class="icon-btn" data-edit="${r.id}" aria-label="수정"><i class="ic ic-edit"></i></button>` },
+    ],
+    empty: ['등록된 광고가 없습니다.', '발주데이터를 업로드해 광고를 등록해 주세요.'],
+  });
+  renderSummary();
+  const update = (next) => { data = next; table.set(filtered()); renderSummary(); };
+
+  // 선택 개수 검사 (수정/삭제/연장 공통 오류 케이스)
+  function requireSelection(one) {
+    const sel = table.selected;
+    if (!sel.length) { toast('광고를 선택해주세요.', 'warning'); return null; }
+    if (one && sel.length > 1) { toast('수정할 광고를 1개만 선택해주세요.', 'warning'); return null; }
+    return sel;
+  }
+
+  /* 수정: 상품 URL·순위조회 키워드 필수, 로직 1~4 중 하나 */
+  const editForm = document.getElementById('editForm');
+  let editingId = null;
+  const isUrl = (v) => /^https?:\/\/\S+\.\S+/.test(v.trim());
+  function openEdit(row) {
+    editingId = row.id;
+    editForm.reset();
+    editForm.url.value = row.url || '';
+    editForm.cmpUrl.value = row.cmpUrl || '';
+    editForm.keyword.value = row.keyword;
+    editForm.logic.value = row.logic;
+    editForm.memo.value = row.memo || '';
+    syncEdit(); openModal('editModal');
+  }
+  function syncEdit() {
+    const cmp = editForm.cmpUrl.value.trim();
+    document.getElementById('editSubmit').disabled =
+      !isUrl(editForm.url.value) || (cmp && !isUrl(cmp)) || !editForm.keyword.value.trim() || !editForm.logic.value;
+  }
+  editForm.addEventListener('input', syncEdit);
+  editForm.addEventListener('change', syncEdit);
+  editForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (document.getElementById('editSubmit').disabled) return;
+    const v = { url: editForm.url.value.trim(), cmpUrl: editForm.cmpUrl.value.trim(), keyword: editForm.keyword.value.trim(), logic: editForm.logic.value, memo: editForm.memo.value.trim() };
+    update(data.map((r) => (r.id === editingId ? { ...r, ...v, status: 'wait' } : r)));
+    closeModal('editModal');
+    toast('수정이 완료되었습니다.');
+  });
+  document.getElementById('btnEdit').addEventListener('click', () => { const s = requireSelection(true); if (s) openEdit(s[0]); });
+  document.getElementById('adList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-edit]');
+    if (b) openEdit(data.find((r) => r.id === +b.dataset.edit));
+  });
+
+  /* 삭제 */
+  document.getElementById('btnDelete').addEventListener('click', async () => {
+    const sel = requireSelection(); if (!sel) return;
+    const ok = await confirm({ message: `선택하신 광고 ${sel.length}개를 삭제하시겠습니까?`, desc: '삭제 후 복구는 불가능합니다.', ok: '삭제' });
+    if (!ok) return;
+    const gone = new Set(sel.map((r) => r.id));
+    update(data.filter((r) => !gone.has(r.id)));
+    toast('광고가 삭제되었습니다.');
+  });
+
+  /* 연장 */
+  let extendTargets = [];
+  document.getElementById('btnExtend').addEventListener('click', () => {
+    const sel = requireSelection(); if (!sel) return;
+    extendTargets = sel.map((r) => r.id);
+    // 번호: 1건이면 그대로, 여러 건이면 "첫 번호 외 N건"
+    exForm.querySelector('#exIds').value = sel.length > 1 ? `${sel[0].id} 외 ${sel.length - 1}건` : sel[0].id;
+    exForm.days.value = '10';
+    syncExtend();
+    openModal('extendModal');
+  });
+  const exForm = document.getElementById('extendForm');
+  // 입력값과 같은 빠른 선택 칸만 선택 표시, 1~365일일 때만 버튼 활성
+  function syncExtend() {
+    exForm.days.value = exForm.days.value.replace(/\D/g, '');
+    const v = exForm.days.value;
+    exForm.querySelectorAll('[name=preset]').forEach((r) => (r.checked = r.value === v));
+    document.getElementById('extendSubmit').disabled = !(+v >= 1 && +v <= 365);
+  }
+  exForm.addEventListener('input', (e) => { if (e.target.name === 'days') syncExtend(); });
+  exForm.addEventListener('change', (e) => { if (e.target.name === 'preset') { exForm.days.value = e.target.value; syncExtend(); } });
+  document.getElementById('extendForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (document.getElementById('extendSubmit').disabled) return;
+    const days = +exForm.days.value;
+    const add = (d) => { const t = new Date(d); t.setDate(t.getDate() + days); return t.toISOString().slice(0, 10); };
+    update(data.map((r) => (extendTargets.includes(r.id) ? { ...r, end: add(r.end), days: r.days + days } : r)));
+    table.clear();
+    closeModal('extendModal');
+    toast('연장이 완료되었습니다.');
+  });
+
+  /* 발주데이터 업로드 */
+  const upForm = document.getElementById('uploadForm');
+  const syncUpload = () => { document.getElementById('uploadSubmit').disabled = !upForm.user.value || !upForm.file.files.length; };
+  upForm.addEventListener('change', syncUpload);
+  document.getElementById('btnUpload').addEventListener('click', () => {
+    upForm.reset();
+    const f = upForm.querySelector('.file'); f.classList.remove('is-selected'); f.querySelector('.file-name').textContent = '선택된 파일 없음';
+    syncUpload(); openModal('uploadModal');
+  });
+  upForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = upForm.file.files[0].name;
+    closeModal('uploadModal');
+    // 프로토타입: 파일명에 "error"가 있으면 엑셀 오류 케이스를 보여준다
+    if (/error/i.test(name)) return toast('3행 로직이 올바르지 않습니다.\n로직 1~로직 4 중 하나만 입력해주세요.', 'warning');
+    toast('발주데이터가 업로드되었습니다.');
+  });
+
+  /* 순위 보고서: 가격비교·플러스 순위 셀(순위보기)을 누르면 열린다 */
+  const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  const rankNum = (v) => (/^\d+위$/.test(v) ? parseInt(v, 10) : null); // '순위 밖' → null
+  const rankText = (n) => (n == null ? '순위 밖' : `${n}위`);
+  // 프로토타입 데이터: 작업시작일 ~ 오늘(최대 120일), 최신순. 대기 상태 광고는 기록 없음
+  function rankHistory(row, type) {
+    if (row.status === 'wait') return [];
+    const dayMs = 86400000;
+    const len = Math.max(1, Math.min(120, Math.round((Date.parse(today) - Date.parse(row.start)) / dayMs) + 1));
+    let seed = row.id * (type === 'plus' ? 31 : 17);
+    const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    let cur = rankNum(type === 'cmp' ? row.cmp : row.plus);
+    const out = [];
+    for (let i = 0; i < len; i++) {
+      const d = new Date(Date.parse(today) - i * dayMs);
+      out.push({ date: `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')} (${DOW[d.getUTCDay()]})`, rank: cur });
+      // 과거로 갈수록 순위가 조금씩 흔들리고, 가끔 순위 밖으로 빠진다
+      if (cur == null) cur = rnd() < 0.25 ? 5 + Math.floor(rnd() * 25) : null;
+      else { const next = cur + Math.round((rnd() - 0.45) * 6); cur = next > 50 || rnd() < 0.04 ? null : Math.max(1, next); }
+    }
+    return out;
+  }
+  let rankRow = null;
+  function renderRank(type) {
+    document.querySelectorAll('[data-rank-tab]').forEach((b) => {
+      const on = b.dataset.rankTab === type;
+      b.classList.toggle('is-selected', on);
+      b.setAttribute('aria-selected', on);
+    });
+    const hist = rankHistory(rankRow, type);
+    const now = rankNum(type === 'cmp' ? rankRow.cmp : rankRow.plus);
+    const start = hist.length ? hist[hist.length - 1].rank : null;
+    // 시작일 대비: 순위 숫자가 작아지면 상승(↑ 빨강), 커지면 하락(↓ 파랑) — 국내 등락 표기 관례
+    const mark = (up, text) => `<span class="rank-delta ${up ? 'is-up' : 'is-down'}"><i class="ic ${up ? 'ic-arrow-up' : 'ic-arrow-down'}" aria-hidden="true"></i>${text}</span>`;
+    let delta = '<span class="rank-flat">-</span>';
+    if (now != null && start != null && now !== start) delta = mark(now < start, `${Math.abs(start - now)}위`);
+    else if (now != null && start == null && hist.length > 1) delta = mark(true, '순위 진입');
+    else if (now == null && start != null) delta = mark(false, '순위 이탈');
+    const stat = (label, value, tip) => `<div class="rank-stat"><span class="rank-label">${label}</span><span class="rank-value"${tip ? ` data-tip="${esc(tip)}"` : ''}>${value}</span></div>`;
+    document.getElementById('rankSummary').innerHTML =
+      stat('키워드', esc(rankRow.keyword), rankRow.keyword) + stat('금일 순위', hist.length ? rankText(now) : '-') +
+      stat('시작 순위', hist.length ? rankText(start) : '-') + stat('시작일 대비', delta);
+    document.getElementById('rankHistory').innerHTML = hist.length
+      ? hist.map((h) => `<div class="rank-day"><span class="rank-label">${h.date}</span><span class="rank-value">${rankText(h.rank)}</span></div>`).join('')
+      : '<p class="rank-empty">아직 수집된 순위 기록이 없습니다.</p>';
+  }
+  document.getElementById('adList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rank]');
+    if (!b) return;
+    rankRow = data.find((r) => r.id === +b.dataset.rank);
+    renderRank(b.dataset.type);
+    openModal('rankModal');
+  });
+  document.querySelector('.rank-tabs').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-rank-tab]');
+    if (t) renderRank(t.dataset.rankTab);
+  });
+
+  /* 로직관리: 매체별 유입 분배 비율 (합계 100%) */
+  const SLOTS_TODAY = 666, PER_SLOT = 67, TOTAL_INFLOW = SLOTS_TODAY * PER_SLOT;
+  let logic = [['아바티', 6], ['체리포인트', 12], ['머니닷', 0], ['TNK', 0], ['애드팝콘', 0], ['플코', 11], ['NBT', 64], ['아바티 매체사', 7]];
+  const logicForm = document.getElementById('logicForm');
+  const logicInputs = () => [...logicForm.querySelectorAll('[data-media]')];
+  const isNum = (v) => /^\d+$/.test(v.trim()) && +v <= 100;
+  document.getElementById('logicBasis').textContent = `유입수는 금일 송출 대상 슬롯 ${SLOTS_TODAY.toLocaleString()}개 × 슬롯당 ${PER_SLOT}개 기준입니다.`;
+  document.getElementById('logicInflow').textContent = `총 유입 ${TOTAL_INFLOW.toLocaleString()}`;
+
+  function renderLogic(rows) {
+    document.getElementById('logicRows').innerHTML = rows.map(([name, pct], i) => `
+      <div class="logic-row">
+        <label class="logic-name" for="lg-${i}">${esc(name)}</label>
+        <div class="field"><input id="lg-${i}" data-media="${esc(name)}" inputmode="numeric" maxlength="3" value="${pct}"></div>
+        <span class="logic-unit">%</span>
+        <span class="logic-count"></span>
+      </div>`).join('');
+    syncLogic();
+  }
+  function syncLogic() {
+    let sum = 0;
+    logicInputs().forEach((inp) => {
+      const ok = isNum(inp.value);
+      const pct = ok ? +inp.value : 0;
+      sum += pct;
+      inp.closest('.field').classList.toggle('is-invalid', !ok && inp.value !== '');
+      inp.closest('.logic-row').querySelector('.logic-count').textContent = `${Math.round((TOTAL_INFLOW * pct) / 100).toLocaleString()} 유입`;
+    });
+    const s = document.getElementById('logicSum');
+    s.textContent = `합계 ${sum}%`;
+    s.classList.toggle('is-off', sum !== 100);
+    return sum;
+  }
+  logicForm.addEventListener('input', syncLogic);
+
+  // 균등분배: 100%를 매체 수로 나누고, 남는 %는 위에서부터 1%씩
+  document.getElementById('logicEven').addEventListener('click', () => {
+    const ins = logicInputs(), base = Math.floor(100 / ins.length), rest = 100 - base * ins.length;
+    ins.forEach((inp, i) => (inp.value = base + (i < rest ? 1 : 0)));
+    syncLogic();
+  });
+
+  document.getElementById('btnLogic').addEventListener('click', () => { renderLogic(logic); openModal('logicModal'); });
+  logicForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ins = logicInputs();
+    const bad = ins.find((inp) => !isNum(inp.value));
+    if (bad) { bad.focus(); return toast('올바른 숫자를 기입해주세요.', 'warning'); }
+    if (syncLogic() !== 100) return toast('합계는 100%여야 합니다.', 'warning');
+    logic = ins.map((inp) => [inp.dataset.media, +inp.value]);
+    closeModal('logicModal');
+    toast('로직 수정이 완료되었습니다.');
+  });
+
+  /* 데이터 추출 (Loading, Figma 342:43868): 화면 전체를 흐리게 덮고 가운데에 로고 */
+  document.querySelectorAll('[data-export]').forEach((btn) => btn.addEventListener('click', async () => {
+    // TODO: 실제 추출 API 호출로 교체. 프로토타입은 1.5초 대기
+    await Blending.loading(new Promise((r) => setTimeout(r, 1500)), `${btn.dataset.export} 추출 중`);
+    toast(`${btn.dataset.export} 추출이 완료되었습니다.`);
+  }));
+</script>
+</body>
+</html>

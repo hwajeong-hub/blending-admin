@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>정산관리 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="settle">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">정산관리</h1>
+      <p class="page-desc">슬롯의 발주 및 환불 로그를 확인할 수 있습니다.</p>
+    </header>
+
+    <div class="section-summary">
+      <div class="filter-card">
+        <div class="filter-row">
+          <label class="field date-range"><input id="range" readonly aria-label="조회기간"><i class="ic ic-calendar"></i></label>
+          <div class="chips" id="rangeChips">
+            <button class="chip chip-lg" data-range="today">오늘</button>
+            <button class="chip chip-lg is-selected" data-range="yesterday">1일전</button>
+            <button class="chip chip-lg" data-range="month">이번달</button>
+            <button class="chip chip-lg" data-range="m9">9월</button>
+            <button class="chip chip-lg" data-range="m8">8월</button>
+            <button class="chip chip-lg" data-range="m7">7월</button>
+          </div>
+        </div>
+        <div class="summary settle-sum">
+          <div class="summary-item"><p class="summary-title">조회기간</p><p class="summary-value" id="sumRange">-</p></div>
+          <div class="summary-item"><p class="summary-title">수량 합계</p><p class="summary-value" id="sumQty">-</p></div>
+          <div class="summary-item"><p class="summary-title">발주일수 합계</p><p class="summary-value" id="sumDays">-</p></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" id="logList">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <form class="field search" data-search role="search">
+            <input placeholder="검색어를 입력해주세요" aria-label="로그 검색">
+            <button class="field-icon-btn" aria-label="검색"><i class="ic ic-search"></i></button>
+          </form>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-line" id="btnExcel"><i class="ic ic-download"></i>엑셀 저장</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<!-- 삭제로그: 넓은 모달 + 스크롤되는 표 + 꽉 찬 닫기 버튼 -->
+<div class="dim" id="deleteLogModal">
+  <div class="modal modal-full" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <h2 class="modal-title" id="dlTitle">삭제로그</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="table-scroll">
+      <table class="table table-compact" id="dlTable"></table>
+    </div>
+    <div class="cta"><button class="btn btn-line" data-close>닫기</button></div>
+  </div>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const { list, toast, openModal, esc } = Blending;
+  const TODAY = '2026-10-19';
+  const ymd = (d) => d.toISOString().slice(0, 10);
+  const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+  const monthEnd = (y, m) => ymd(new Date(Date.UTC(y, m, 0)));
+  const RANGES = {
+    today: [TODAY, TODAY],
+    yesterday: [addDays(TODAY, -1), addDays(TODAY, -1)],
+    month: ['2026-10-01', TODAY],
+    m9: ['2026-09-01', monthEnd(2026, 9)],
+    m8: ['2026-08-01', monthEnd(2026, 8)],
+    m7: ['2026-07-01', monthEnd(2026, 7)],
+  };
+
+  // 프로토타입 데이터: 7월~10월 19일 발주/환불/연장 로그
+  const people = [['아우어', 'our', 'darlingtag'], ['아우어', 'theflow', 'ghdkql12'], ['풀림', 'ppuu', 'pptlife'], ['adxx', 'adxx97', 'kingjyc3']];
+  const all = [];
+  let no = 244529;
+  for (let day = 0; day < 110; day++) {
+    const date = addDays(TODAY, -day);
+    for (let k = 0; k < 4; k++) {
+      const p = people[(day + k) % people.length];
+      const type = ['생성', '환불', '연장', '생성'][(day * 3 + k) % 4];
+      const qty = type === '생성' ? [20, 3, 2, 5][k] : 1;
+      const term = type === '환불' ? -[9, 13, 4, 7][k] : [1, 7, 10, 7][k];
+      all.push({
+        id: no--, type, dist: p[0], agency: p[1], user: p[2],
+        logic: type === '생성' ? '' : '로직 1', qty, term, total: qty * term,
+        created: `${date} ${String(19 - k * 3).padStart(2, '0')}:${String((day * 7 + k * 11) % 60).padStart(2, '0')}:21`,
+        start: addDays(date, type === '환불' ? 0 : 1),
+      });
+    }
+  }
+
+  const table = list({
+    root: '#logList',
+    data: [],
+    selectable: false,
+    searchKeys: ['id', 'dist', 'agency', 'user', 'type'],
+    columns: [
+      { key: 'id', label: '번호' },
+      { key: 'type', label: '구분' },
+      { key: 'dist', label: '총판' },
+      { key: 'agency', label: '대행사' },
+      { key: 'user', label: '일반' },
+      { key: 'logic', label: '로직' },
+      { key: 'qty', label: '수량', render: (r) => `${r.qty}개` },
+      { key: 'term', label: '기간', render: (r) => `${r.term}일` },
+      { key: 'total', label: '일수합계', render: (r) => `${r.total}일` },
+      { key: 'created', label: '생성일시' },
+      { key: 'start', label: '작업시작일' },
+      { key: 'log', label: '삭제로그', render: (r) => `<button class="icon-btn" data-dellog="${r.id}" ${r.type === '환불' ? '' : 'disabled'} aria-label="삭제로그 보기"><i class="ic ic-file-delete"></i></button>` },
+    ],
+    empty: ['누적된 로그가 없습니다.', '조회기간을 바꿔 다시 확인해 주세요.'],
+  });
+
+  let current = [];
+  const picker = Blending.datePicker(document.getElementById('range'), {
+    today: TODAY,
+    onChange: (from, to) => applyRange(null, from, to), // 직접 고른 기간은 칩 선택을 해제한다
+  });
+  function applyRange(key, from, to) {
+    if (key) [from, to] = RANGES[key];
+    document.querySelectorAll('#rangeChips .chip').forEach((c) => c.classList.toggle('is-selected', c.dataset.range === key));
+    picker.set(from, to);
+    current = all.filter((r) => r.created.slice(0, 10) >= from && r.created.slice(0, 10) <= to);
+    table.set(current);
+    document.getElementById('sumRange').textContent = `${from} ~ ${to}`;
+    document.getElementById('sumQty').textContent = `${current.reduce((s, r) => s + r.qty, 0).toLocaleString()}개`;
+    document.getElementById('sumDays').textContent = `${current.reduce((s, r) => s + r.total, 0).toLocaleString()}일`;
+  }
+  document.getElementById('rangeChips').addEventListener('click', (e) => { const c = e.target.closest('[data-range]'); if (c) applyRange(c.dataset.range); });
+  applyRange('yesterday');
+
+  /* 삭제 로그 */
+  document.getElementById('logList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dellog]');
+    if (!b || b.disabled) return;
+    const row = all.find((r) => r.id === +b.dataset.dellog);
+    // 프로토타입 데이터: 환불된 슬롯별 상품 (최소 2건 이상 보여 스크롤 확인 가능)
+    const products = [
+      ['책상 책상위 아이 책꽂이 간이 미니 책정리대 원목 북스탠드 독서대', '90486243247'],
+      ['[국산공장/튼튼해요/당일출고보장] 우체국 택배 박스 소형 중형 대형 이사박스', '90982368313'],
+      ['이안셀 쿠션 이뮤니티타임 리턴 보습 진정 밀착 비비 톤업쿠션 16g+S21-6파우치세트', '90887435466'],
+    ];
+    const count = Math.max(row.qty, 2) + (row.id % 4);
+    const end = addDays(row.start, -row.term);
+    const rows = Array.from({ length: count }, (_, i) => {
+      const [name, mid] = products[i % products.length];
+      return `<tr><td>${row.id - 5 + i}</td><td><span class="cell-ellipsis" data-tip="${esc(name)}">${esc(name)}</span></td><td>${mid}</td><td>${row.start}</td><td>${end}</td><td>${row.created.slice(0, 10)}</td><td>${-row.term}</td></tr>`;
+    }).join('');
+    document.getElementById('dlTable').innerHTML = `<thead><tr><th>번호</th><th>상품명</th><th>MID</th><th>시작일</th><th>종료일</th><th>환불요청일</th><th>환불일수</th></tr></thead><tbody>${rows}</tbody>`;
+    openModal('deleteLogModal');
+  });
+
+  /* 엑셀 저장 (프로토타입: CSV로 내려받기) */
+  document.getElementById('btnExcel').addEventListener('click', () => {
+    if (!current.length) return toast('저장할 로그가 없습니다.', 'warning');
+    const head = ['번호', '구분', '총판', '대행사', '일반', '로직', '수량', '기간', '일수합계', '생성일시', '작업시작일'];
+    const lines = [head, ...current.map((r) => [r.id, r.type, r.dist, r.agency, r.user, r.logic, r.qty, r.term, r.total, r.created, r.start])];
+    const csv = '﻿' + lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `정산로그_${document.getElementById('range').value.replace(/ ~ /, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('엑셀 파일을 저장했습니다.');
+  });
+</script>
+</body>
+</html>

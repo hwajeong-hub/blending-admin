@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>캠페인 정산관리 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="campaign" data-sub="campaign-settle">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">정산관리</h1>
+      <p class="page-desc">매체별 일자 정산(단가·VAT 포함)을 확인할 수 있습니다.</p>
+    </header>
+    <nav class="tabs">
+      <a class="tab" href="campaign-summary.html">캠페인 요약</a>
+      <a class="tab" href="campaign-manage.html">캠페인 관리</a>
+      <a class="tab is-active" href="campaign-settle.html">정산관리</a>
+    </nav>
+
+    <section class="section" id="settleList" style="padding-top:16px">
+      <div class="chips" id="mediaChips"></div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <label class="field date-range"><input id="range" readonly aria-label="조회기간"><i class="ic ic-calendar"></i></label>
+          <div class="seg" id="periodSeg">
+            <button type="button" data-period="today">오늘</button>
+            <button type="button" data-period="month" class="is-selected">이번달</button>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-line" id="btnPrice">단가설정</button>
+          <button class="btn btn-primary" id="btnDownload">정산 다운로드</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<!-- 단가설정 -->
+<div class="dim" id="priceModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="priceTitle">
+    <h2 class="modal-title" id="priceTitle">단가설정</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <p class="modal-note">· 이 사이트 전용 단가로, 저장하면 키워드퀴즈 정산에는 사이트별 단가의 평균이 반영됩니다.<br>· 이 사이트 단가가 없으면 기본(키워드퀴즈)단가가 적용됩니다.</p>
+    <form class="panel" id="priceForm" novalidate>
+      <div class="panel-grid cols-3">
+        <div class="box"><label class="box-label" for="pMedia">매체</label>
+          <label class="field"><select id="pMedia" name="media"></select><i class="ic ic-chevron-down"></i></label></div>
+        <div class="box"><label class="box-label" for="pCat">카테고리</label>
+          <label class="field"><select id="pCat" name="cat"><option>쇼핑</option><option>저장</option><option>방문</option></select><i class="ic ic-chevron-down"></i></label></div>
+        <div class="box"><label class="box-label" for="pStart">적용 시작일</label>
+          <label class="field"><input type="date" id="pStart" name="start" value="2026-10-20"></label></div>
+      </div>
+      <div class="panel-grid cols-2">
+        <div class="box"><label class="box-label" for="pPrice">단가(원)</label>
+          <div class="field"><input id="pPrice" name="price" inputmode="numeric" placeholder="0"></div></div>
+        <div class="box"><label class="box-label" for="pNet">NET(원)</label>
+          <div class="field"><input id="pNet" name="net" inputmode="numeric" placeholder="미입력 시 단가"></div></div>
+      </div>
+      <div class="panel-actions"><button class="btn btn-primary" id="priceAdd" disabled>추가하기</button></div>
+    </form>
+    <div>
+      <p class="sub-title" style="margin-bottom:8px">전체 단가</p>
+      <table class="table-plain">
+        <thead><tr><th>구분</th><th>매체</th><th>카테고리</th><th>적용 시작일</th><th>구간</th><th>단가</th></tr></thead>
+        <tbody id="priceRows"></tbody>
+      </table>
+    </div>
+    <div class="cta"><button class="btn btn-line" data-close>닫기</button></div>
+  </div>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const { list, toast, openModal, esc } = Blending;
+  const MEDIA = ['아바티', '체리포인트', '머니닷', 'TNK', '애드팝콘', '플코', 'NBT', '아바티 매체사'];
+  const TODAY = '2026-10-19';
+  const won = (v) => `₩ ${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+  // 매체별 일자 정산 (프로토타입 데이터)
+  const all = [];
+  MEDIA.forEach((m, mi) => {
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(Date.UTC(2026, 9, 19 - i)).toISOString().slice(0, 10);
+      const goal = 34000 + ((i * 2371 + mi * 911) % 7000);
+      const used = goal - ((i * 97 + mi * 31) % 400);
+      const unit = [18.34, 18.32, 17, 17.01, 17.02, 17.03][(i + mi) % 6];
+      const cost = Math.round(used * unit);
+      const vat = Math.round(cost * 0.1);
+      all.push({ id: `${m}-${d}`, media: m, date: d, cat: '쇼핑', goal, used, unit, cost, vat, total: cost + vat });
+    }
+  });
+
+  const table = list({
+    root: '#settleList',
+    data: [],
+    selectable: false,
+    columns: [
+      { key: 'date', label: '날짜' },
+      { key: 'cat', label: '구분' },
+      { key: 'goal', label: '목표유입수', render: (r) => r.goal.toLocaleString() },
+      { key: 'used', label: '소진유입수', render: (r) => r.used.toLocaleString() },
+      { key: 'unit', label: '유입당원가', render: (r) => won(r.unit) },
+      { key: 'cost', label: '매체단가', render: (r) => won(r.cost) },
+      { key: 'vat', label: 'VAT(10%)', render: (r) => won(r.vat) },
+      { key: 'total', label: '총정산금액', render: (r) => won(r.total) },
+    ],
+    empty: ['정산 내역이 없습니다.', '매체나 조회기간을 바꿔 다시 확인해 주세요.'],
+  });
+
+  /* 필터: 매체 칩 + 기간 */
+  let media = '전체', period = 'month', range = null, current = [];
+  document.getElementById('mediaChips').innerHTML = ['전체', ...MEDIA].map((m) => `<button class="chip${m === media ? ' is-selected' : ''}" data-media="${m}">${m}</button>`).join('');
+  // 달력에서 직접 고르면 오늘/이번달 선택이 풀린다
+  const picker = Blending.datePicker(document.getElementById('range'), {
+    today: TODAY,
+    onChange: (f, t) => { period = null; range = [f, t]; apply(); },
+  });
+  function apply() {
+    const [from, to] = period ? [period === 'today' ? TODAY : '2026-10-01', TODAY] : range;
+    picker.set(from, to);
+    document.querySelectorAll('#mediaChips .chip').forEach((c) => c.classList.toggle('is-selected', c.dataset.media === media));
+    document.querySelectorAll('#periodSeg button').forEach((b) => b.classList.toggle('is-selected', b.dataset.period === period));
+    const rows = all.filter((r) => r.date >= from && r.date <= to && (media === '전체' || r.media === media));
+    // 전체는 같은 날짜를 매체 합산으로 보여준다
+    current = media !== '전체' ? rows : Object.values(rows.reduce((acc, r) => {
+      const a = acc[r.date] || (acc[r.date] = { id: r.date, date: r.date, cat: r.cat, goal: 0, used: 0, cost: 0, vat: 0, total: 0 });
+      a.goal += r.goal; a.used += r.used; a.cost += r.cost; a.vat += r.vat; a.total += r.total;
+      a.unit = Math.round((a.cost / a.used) * 100) / 100;
+      return acc;
+    }, {}));
+    table.set(current);
+  }
+  document.getElementById('mediaChips').addEventListener('click', (e) => { const c = e.target.closest('[data-media]'); if (c) { media = c.dataset.media; apply(); } });
+  document.getElementById('periodSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-period]'); if (b) { period = b.dataset.period; apply(); } });
+  apply();
+
+  /* 정산 다운로드 (프로토타입: CSV) */
+  document.getElementById('btnDownload').addEventListener('click', () => {
+    if (!current.length) return toast('다운로드할 정산 내역이 없습니다.', 'warning');
+    const lines = [['날짜', '구분', '목표유입수', '소진유입수', '유입당원가', '매체단가', 'VAT(10%)', '총정산금액'],
+      ...current.map((r) => [r.date, r.cat, r.goal, r.used, r.unit, r.cost, r.vat, r.total])];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + lines.map((l) => l.join(',')).join('\n')], { type: 'text/csv' }));
+    a.download = `정산_${media}_${document.getElementById('range').value.replace(/ ~ /, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('정산 파일을 다운로드했습니다.');
+  });
+
+  /* 단가설정 */
+  let prices = [
+    ['저장', '2026-01-01', 27], ['저장', '2026-07-06', 33], ['쇼핑', '2026-01-01', 16],
+    ['쇼핑', '2026-07-06', 20], ['방문', '2026-01-01', 18], ['방문', '2026-07-06', 23],
+  ].map(([cat, start, price]) => ({ kind: '기본', media: '아바티', cat, start, range: '-', price }));
+  const pf = document.getElementById('priceForm');
+  pf.media.innerHTML = MEDIA.map((m) => `<option>${m}</option>`).join('');
+  const renderPrices = () => {
+    document.getElementById('priceRows').innerHTML = prices.map((p) =>
+      `<tr><td>${p.kind}</td><td>${esc(p.media)}</td><td>${p.cat}</td><td>${p.start}</td><td>${p.range}</td><td>${won(p.price)}</td></tr>`).join('');
+  };
+  pf.addEventListener('input', () => { document.getElementById('priceAdd').disabled = !(+pf.price.value > 0) || !pf.start.value; });
+  pf.addEventListener('submit', (e) => {
+    e.preventDefault();
+    prices.push({ kind: '사이트', media: pf.media.value, cat: pf.cat.value, start: pf.start.value, range: '-', price: +pf.price.value });
+    renderPrices();
+    pf.price.value = ''; pf.net.value = '';
+    document.getElementById('priceAdd').disabled = true;
+    toast('단가 설정이 추가되었습니다.');
+  });
+  document.getElementById('btnPrice').addEventListener('click', () => { renderPrices(); openModal('priceModal'); });
+</script>
+</body>
+</html>

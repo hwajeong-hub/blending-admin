@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>캠페인 요약 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="campaign" data-sub="campaign-summary">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">캠페인 요약</h1>
+      <p class="page-desc">일자별 캠페인 소진 현황을 확인할 수 있습니다.</p>
+    </header>
+    <nav class="tabs">
+      <a class="tab is-active" href="campaign-summary.html">캠페인 요약</a>
+      <a class="tab" href="campaign-manage.html">캠페인 관리</a>
+      <a class="tab" href="campaign-settle.html">정산관리</a>
+    </nav>
+
+    <section class="section" id="summaryList" style="padding-top:24px">
+      <div class="stats-bar">
+        <div class="stats">
+          <div><p class="stat-value">1,452</p><p class="stat-label">등록된 광고수</p></div>
+          <div><p class="stat-value">37,922</p><p class="stat-label">오늘 소진 목표량</p></div>
+          <div><p class="stat-value">33,547</p><p class="stat-label">오늘 소진 횟수</p></div>
+        </div>
+        <label class="field date-range"><input id="range" aria-label="조회기간"><i class="ic ic-calendar"></i></label>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const n = (v) => v.toLocaleString();
+  const all = Array.from({ length: 116 }, (_, i) => {
+    const d = new Date(Date.UTC(2026, 9, 19 - i));
+    const goal = 34000 + ((i * 2371) % 7000);
+    const used = goal - [4377, 104, 75, 125, 203, 222, 1156, 243, 131, 1183][i % 10];
+    return { id: d.toISOString().slice(0, 10), goal, used, left: goal - used,
+      wrong: 5500 + ((i * 617) % 1900), people: 27000 + ((i * 1499) % 7000), perfect: 200 + ((i * 13) % 60) };
+  });
+
+  const table = Blending.list({
+    root: '#summaryList',
+    data: [],
+    selectable: false,
+    columns: [
+      { key: 'id', label: '날짜' },
+      { key: 'goal', label: '목표 소진', render: (r) => n(r.goal) },
+      { key: 'used', label: '현재 소진', render: (r) => n(r.used) },
+      { key: 'left', label: '남은 소진', render: (r) => n(r.left) },
+      { key: 'wrong', label: '오답수', render: (r) => n(r.wrong) },
+      { key: 'people', label: '참여자수', render: (r) => n(r.people) },
+      { key: 'perfect', label: '퍼펙트 참여자수', render: (r) => n(r.perfect) },
+    ],
+    empty: ['조회된 캠페인 내역이 없습니다.', '조회기간을 바꿔 다시 확인해 주세요.'],
+  });
+
+  const apply = (from, to) => table.set(all.filter((r) => r.id >= from && r.id <= to));
+  Blending.datePicker(document.getElementById('range'), { today: '2026-10-19', value: ['2026-10-01', '2026-10-19'], onChange: apply });
+  apply('2026-10-01', '2026-10-19');
+</script>
+</body>
+</html>

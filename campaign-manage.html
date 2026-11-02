@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>캠페인 관리 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="campaign" data-sub="campaign-manage">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">캠페인 관리</h1>
+      <p class="page-desc">작업서버에 등록된 캠페인을 관리할 수 있습니다.</p>
+    </header>
+    <nav class="tabs">
+      <a class="tab" href="campaign-summary.html">캠페인 요약</a>
+      <a class="tab is-active" href="campaign-manage.html">캠페인 관리</a>
+      <a class="tab" href="campaign-settle.html">정산관리</a>
+    </nav>
+
+    <section class="section" id="manageList" style="padding-top:16px">
+      <div class="toolbar">
+        <label class="field date-range">
+          <input id="regDate" placeholder="연도. 월. 일." aria-label="등록일">
+          <button type="button" class="field-clear" data-clear hidden aria-label="날짜 지우기"><i class="ic ic-close"></i></button>
+          <i class="ic ic-calendar"></i>
+        </label>
+        <form class="field search" data-search role="search">
+          <input placeholder="상품명 검색" aria-label="상품명 검색">
+          <button class="field-icon-btn" aria-label="검색"><i class="ic ic-search"></i></button>
+        </form>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<!-- 정답 수정 -->
+<div class="dim" id="answerModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="answerTitle" id="answerForm" novalidate>
+    <h2 class="modal-title" id="answerTitle">정답 수정</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="box" style="width:100%">
+      <div class="field"><input name="answer" aria-label="정답"></div>
+      <p class="box-helper" style="margin-top:14px">저장을 누르면 즉시 반영됩니다.</p>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="answerSubmit">저장</button>
+    </div>
+  </form>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const { list, toast, confirm, openModal, closeModal, esc } = Blending;
+  const names = [
+    ['수미 감자 햇감자 알감자 포슬 조림 5kg', '감자요리'],
+    ['데이앤에어 욕실 온풍기 벽걸이 가정용 욕실 난방기 화장실 온풍기 DA-H200', '욕실온풍기'],
+    ['스피카드깐느 여성청결제 에떼르넬 프리미엄 Y존 케어 300ml', '여성청결제'],
+    ['참나무장작불에 찐 강원도 정선 미흑찰 옥수수 냉동 10개입', '찰옥수수'],
+    ['반려세상 절약형 강아지 기저귀 50매 여아 초미니 소형견용', '강아지기저귀'],
+    ['순수식품 흑도라지 배생강청 스틱 10ml x 100포, 1개', '도라지청'],
+    ['한일의료기 탄소매트 전기 매트 카본 전기요 전자파 없는 싱글', '탄소매트'],
+    ['가정용 오방 난로 전기 히터 욕실 난방기 화장실 온풍기', '전기히터'],
+    ['반려세상 고급형 강아지 기저귀 50매 수컷 중형 암컷 대형견용', '강아지기저귀'],
+    ['프리바이오틱스 FOS4300 프락토올리고당 아연 유산균 30포', '프리바이오틱스'],
+  ];
+  let data = Array.from({ length: 236 }, (_, i) => {
+    const [name, answer] = names[i % names.length];
+    const quota = [1340, 1474, 1005, 670, 603, 536, 737, 402, 335, 335][i % 10] + Math.floor(i / 10) * 7;
+    const used = Math.round(quota * (0.83 + ((i * 7) % 15) / 100));
+    const d = new Date(Date.UTC(2026, 9, 18 - (i % 75)));
+    return { id: i + 1, name, answer, quota, used, left: quota - used, wrong: 11 + ((i * 17) % 90), date: d.toISOString().slice(0, 10), on: i % 9 !== 4 };
+  });
+  const n = (v) => v.toLocaleString();
+
+  const table = list({
+    root: '#manageList',
+    data,
+    selectable: false,
+    searchKeys: ['name'],
+    columns: [
+      { key: 'name', label: '상품명', fill: true, ellipsis: true },
+      { key: 'quota', label: '할당량', render: (r) => n(r.quota) },
+      { key: 'used', label: '소진 횟수', render: (r) => n(r.used) },
+      { key: 'left', label: '남은 횟수', render: (r) => n(r.left) },
+      { key: 'wrong', label: '오답수' },
+      { key: 'date', label: '등록일' },
+      { key: 'on', label: '광고 노출', render: (r) => `<label class="toggle"><input type="checkbox" data-toggle="${r.id}" ${r.on ? 'checked' : ''} aria-label="광고 노출"><span></span></label>` },
+      { key: 'edit', label: '정답 수정', render: (r) => `<button class="icon-btn" data-answer="${r.id}" aria-label="정답 수정"><i class="ic ic-edit"></i></button>` },
+    ],
+    empty: ['등록된 캠페인이 없습니다.', '작업서버에 캠페인이 등록되면 이곳에 표시됩니다.'],
+  });
+
+  /* 등록일 필터 */
+  const clearBtn = document.querySelector('[data-clear]');
+  const dateFilter = (d) => {
+    clearBtn.hidden = !d;
+    table.set(d ? data.filter((r) => r.date === d) : data);
+  };
+  const regPicker = Blending.datePicker(document.getElementById('regDate'), { mode: 'single', today: '2026-10-19', onChange: dateFilter });
+  clearBtn.addEventListener('click', () => { regPicker.set(null); dateFilter(null); });
+
+  /* 광고 ON/OFF: 바꾸기 전에 확인 */
+  document.getElementById('manageList').addEventListener('change', async (e) => {
+    const t = e.target.closest('[data-toggle]');
+    if (!t) return;
+    e.stopPropagation();
+    const on = t.checked;
+    t.checked = !on; // 확인 전까지 원래 상태 유지
+    const ok = await confirm({ message: `광고를 ${on ? 'ON' : 'OFF'} 하겠습니까?`, ok: '확인', cancel: '취소' });
+    if (!ok) return;
+    data = data.map((r) => (r.id === +t.dataset.toggle ? { ...r, on } : r));
+    table.set(data);
+    toast(`광고가 ${on ? 'ON' : 'OFF'} 되었습니다.`);
+  }, true);
+
+  /* 정답 수정 */
+  const form = document.getElementById('answerForm');
+  let editingId = null;
+  document.getElementById('manageList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-answer]');
+    if (!b) return;
+    editingId = +b.dataset.answer;
+    form.answer.value = data.find((r) => r.id === editingId).answer;
+    document.getElementById('answerSubmit').disabled = false;
+    openModal('answerModal');
+  });
+  form.addEventListener('input', () => { document.getElementById('answerSubmit').disabled = !form.answer.value.trim(); });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    data = data.map((r) => (r.id === editingId ? { ...r, answer: form.answer.value.trim() } : r));
+    table.set(data);
+    closeModal('answerModal');
+    toast('정답이 수정되었습니다.');
+  });
+</script>
+</body>
+</html>

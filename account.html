@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>계정관리 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="account">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">계정관리</h1>
+      <p class="page-desc">계정과 슬롯을 추가하고 계정 정보를 효율적으로 관리할 수 있습니다.</p>
+    </header>
+
+    <section class="section" id="accountList">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="selected-count" data-count>0개 선택</span>
+          <form class="field search" data-search role="search">
+            <input placeholder="아이디 검색" aria-label="아이디 검색">
+            <button class="field-icon-btn" aria-label="검색"><i class="ic ic-search"></i></button>
+          </form>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-danger" id="btnSite">사이트 설정</button>
+          <button class="btn btn-line" id="btnDelete">삭제</button>
+          <button class="btn btn-primary" id="btnAdd">추가</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="table"></table></div>
+      <div class="pagination" data-pagination></div>
+    </section>
+  </main>
+</div>
+
+<!-- 계정 추가/수정 모달 -->
+<div class="dim" id="accountModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle" id="accountForm" novalidate>
+    <h2 class="modal-title" id="accountTitle">계정 등록정보를 입력해주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body">
+      <div class="box">
+        <label class="box-label" for="fId">아이디</label>
+        <div class="field" id="fIdField"><input id="fId" name="userId" placeholder="내용을 입력해주세요" autocomplete="off"><span class="req">*</span></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="fPw">비밀번호</label>
+        <div class="field">
+          <input id="fPw" name="pw" type="password" placeholder="영문·숫자 4자 이상" autocomplete="new-password">
+          <button type="button" class="field-icon-btn" id="pwToggle" aria-label="비밀번호 보기"><i class="ic ic-eye-off"></i></button>
+          <span class="req">*</span>
+        </div>
+        <p class="box-helper">영문과 숫자로 4자 이상 입력해주세요.</p>
+      </div>
+      <!-- 권한: 등록 = 옵션 선택 / 수정 = 바꿀 수 없는 값 (Figma 326:34825, 계정수정 모달) -->
+      <div class="box" id="roleAddBox">
+        <span class="box-label" id="roleLabel">권한</span>
+        <div class="options" role="radiogroup" aria-labelledby="roleLabel">
+          <label><input type="radio" name="role" value="distributor"><span>총판</span></label>
+          <label><input type="radio" name="role" value="agency"><span>대행사</span></label>
+          <label><input type="radio" name="role" value="general" checked><span>일반</span></label>
+        </div>
+      </div>
+      <div class="box" id="roleEditBox" hidden>
+        <label class="box-label" for="fRoleView">권한</label>
+        <div class="field is-disabled"><input id="fRoleView" disabled></div>
+      </div>
+      <!-- 소속: 대행사 → 총판 선택, 일반 → 대행사 선택 -->
+      <div class="box" id="parentBox">
+        <label class="box-label" for="fParent" id="parentLabel">대행사</label>
+        <label class="field"><select id="fParent" name="parent"></select><i class="ic ic-chevron-down"></i></label>
+      </div>
+      <!-- 총판은 소속이 없어 회사명을 직접 입력, 수정 모드에서는 읽기 전용 -->
+      <div class="box" id="companyBox">
+        <label class="box-label" for="fCompany">회사명</label>
+        <div class="field"><input id="fCompany" name="company" placeholder="내용을 입력해주세요"><span class="req">*</span></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="fMemo">메모</label>
+        <textarea class="textarea" id="fMemo" name="memo" placeholder="내용을 입력해주세요"></textarea>
+      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="accountSubmit" disabled>추가</button>
+    </div>
+  </form>
+</div>
+
+<!-- 슬롯 추가 모달 (일반 계정만) -->
+<div class="dim" id="slotModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="slotTitle" id="slotForm" novalidate>
+    <h2 class="modal-title" id="slotTitle">광고 추가정보를<br>입력해 주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body" style="gap:20px">
+      <div class="box">
+        <label class="box-label" for="slId">아이디</label>
+        <div class="field is-disabled"><input id="slId" name="userId" disabled></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="slQty">수량</label>
+        <div class="field"><input id="slQty" name="qty" inputmode="numeric" maxlength="4" placeholder="수량을 입력해주세요"><span class="req" aria-hidden="true">*</span></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="slDays">일수</label>
+        <div class="field"><input id="slDays" name="days" inputmode="numeric" maxlength="4" value="10"><span class="req" aria-hidden="true">*</span></div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="slStart">작업 시작일</label>
+        <label class="field"><input id="slStart" name="start" placeholder="연도. 월. 일."><i class="ic ic-calendar"></i><span class="req" aria-hidden="true">*</span></label>
+      </div>
+      <div class="box">
+        <label class="box-label" for="slEnd">작업 종료일</label>
+        <div class="field is-disabled"><input id="slEnd" name="end" disabled placeholder="연도. 월. 일."><span class="req" aria-hidden="true">*</span></div>      </div>
+    </div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary" id="slotSubmit" disabled>추가</button>
+    </div>
+  </form>
+</div>
+
+<!-- 사이트 설정 모달 -->
+<div class="dim" id="siteModal">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="siteTitle" id="siteForm" novalidate>
+    <!-- Figma 289:39852: 광고 오픈 시간 4줄 (시작 ~ 종료) -->
+    <h2 class="modal-title" id="siteTitle">광고 정보를<br>입력해 주세요.</h2>
+    <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
+    <div class="modal-body" id="siteRows" style="gap:20px"></div>
+    <div class="cta">
+      <button type="button" class="btn btn-line" data-close>닫기</button>
+      <button class="btn btn-primary">수정</button>
+    </div>
+  </form>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script>
+  const { list, toast, confirm, openModal, closeModal, esc } = Blending;
+  const ROLE = { general: ['일반', 'role-general'], agency: ['대행사', 'role-agency'], distributor: ['총판', 'role-distributor'] };
+  const companies = ['adxx', '아우어', '코이랩스', '개발테스트'];
+  const ids = ['wwj1215', 'jzero132', 'devtest3', 'ycorp2020', 'jy3276', 'mschs', 'alslajf17', 'mschp', 'bigdoggy', 'staywell', 'prott', 'freeguri', 'orient6368'];
+  const roles = ['general', 'agency', 'distributor', 'general', 'agency', 'general', 'general', 'general', 'general', 'general'];
+  let data = Array.from({ length: 34 }, (_, i) => ({
+    id: 3858 - i * 3,
+    userId: ids[i % ids.length] + (i >= ids.length ? i : ''),
+    pw: ['1234', '0003', '123123', '2cndgml2', '327612', 'a1234'][i % 6],
+    role: roles[i % roles.length],
+    company: companies[i % companies.length],
+    qty: [1, 1, 0, 5, 5, 2, 0, 0, 0, 42][i % 10],
+    memo: ['', '이제영', '테스트', '', '정준영'][i % 5],
+  }));
+
+  const table = list({
+    root: '#accountList',
+    data,
+    searchKeys: ['userId'],
+    columns: [
+      { key: 'id', label: '번호', sort: true },
+      { key: 'userId', label: '아이디', sort: true },
+      { key: 'pw', label: '비밀번호' },
+      { key: 'role', label: '권한', sort: true, render: (r) => `<span class="${ROLE[r.role][1]}">${ROLE[r.role][0]}</span>` },
+      { key: 'company', label: '총판' },
+      { key: 'qty', label: '수량', sort: true },
+      { key: 'slot', label: '슬롯 추가', render: (r) => `<button class="icon-btn" data-slot="${r.id}" ${r.role === 'general' ? '' : 'disabled'} aria-label="슬롯 추가"><i class="ic ic-plus"></i></button>` },
+      { key: 'memo', label: '메모', fill: true, ellipsis: true },
+      { key: 'edit', label: '수정', render: (r) => `<button class="icon-btn" data-edit="${r.id}" aria-label="수정"><i class="ic ic-edit"></i></button>` },
+    ],
+    empty: ['관리할 수 있는 계정이 없습니다.', '자세한 계정 관리는 관리자에게 요청해 주세요.'],
+  });
+
+  /* ── 추가 / 수정 모달 ── */
+  const form = document.getElementById('accountForm');
+  const submit = document.getElementById('accountSubmit');
+  let editingId = null;
+
+  // 비밀번호: 한글 불가, 4자 이상 (Draft의 오류 케이스 기준)
+  const pwValid = (v) => /^[A-Za-z0-9!@#$%^&*]{4,}$/.test(v);
+  // 권한별 소속 선택: 대행사는 총판 중에서, 일반은 대행사 중에서 고른다
+  const PARENT = { agency: ['distributor', '총판'], general: ['agency', '대행사'] };
+  function syncRole() {
+    const role = form.role.value;
+    const parent = !editingId && PARENT[role];
+    document.getElementById('parentBox').hidden = !parent;
+    document.getElementById('companyBox').hidden = !editingId && !!parent;
+    if (parent) {
+      const [parentRole, label] = parent;
+      document.getElementById('parentLabel').textContent = label;
+      const prev = form.parent.value;
+      form.parent.innerHTML = `<option value="">소속 그룹을 선택해주세요</option>` +
+        data.filter((r) => r.role === parentRole).map((r) => `<option value="${r.id}">${esc(r.userId)} [${esc(r.company)}]</option>`).join('');
+      if ([...form.parent.options].some((o) => o.value === prev)) form.parent.value = prev;
+    }
+    form.parent.closest('.field').classList.toggle('is-placeholder', !form.parent.value);
+  }
+  function sync() {
+    const parent = !editingId && PARENT[form.role.value];
+    const ok = form.userId.value.trim() && pwValid(form.pw.value) && (parent ? form.parent.value : form.company.value.trim());
+    submit.disabled = !ok;
+  }
+  form.addEventListener('input', sync);
+  form.addEventListener('change', (e) => { if (e.target.name === 'role') syncRole(); if (e.target.name === 'parent') syncRole(); sync(); });
+
+  function openForm(row) {
+    editingId = row ? row.id : null;
+    form.reset();
+    form.userId.disabled = !!row;
+    document.getElementById('fIdField').classList.toggle('is-disabled', !!row);
+    // 수정 모드: 권한·회사명은 바꿀 수 없다
+    document.getElementById('roleAddBox').hidden = !!row;
+    document.getElementById('roleEditBox').hidden = !row;
+    form.company.disabled = !!row;
+    form.company.closest('.field').classList.toggle('is-disabled', !!row);
+    if (row) {
+      form.userId.value = row.userId; form.pw.value = row.pw; form.company.value = row.company; form.memo.value = row.memo;
+      form.role.value = row.role;
+      document.getElementById('fRoleView').value = ROLE[row.role][0];
+    }
+    syncRole();
+    submit.textContent = row ? '수정' : '추가';
+    sync();
+    openModal('accountModal');
+  }
+
+  document.getElementById('pwToggle').addEventListener('click', (e) => {
+    const show = form.pw.type === 'password';
+    form.pw.type = show ? 'text' : 'password';
+    e.currentTarget.querySelector('.ic').className = `ic ${show ? 'ic-eye' : 'ic-eye-off'}`;
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (submit.disabled) return;
+    // 대행사·일반은 고른 소속의 회사명을 이어받는다
+    const parentRow = !editingId && PARENT[form.role.value] && data.find((r) => r.id === +form.parent.value);
+    const v = { userId: form.userId.value.trim(), pw: form.pw.value, company: parentRow ? parentRow.company : form.company.value.trim(), memo: form.memo.value.trim(), role: form.role.value };
+    if (editingId) {
+      data = data.map((r) => (r.id === editingId ? { ...r, ...v, userId: r.userId, role: r.role } : r));
+      toast('계정 정보가 수정되었습니다.');
+    } else {
+      if (data.some((r) => r.userId === v.userId)) return toast('계정 추가에 실패했습니다.\n이미 사용 중인 아이디입니다.', 'warning');
+      data = [{ id: Math.max(...data.map((r) => r.id)) + 1, qty: 0, ...v }, ...data];
+      toast('계정이 추가되었습니다.');
+    }
+    table.set(data);
+    closeModal('accountModal');
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', () => openForm(null));
+  document.getElementById('accountList').addEventListener('click', (e) => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) openForm(data.find((r) => r.id === +ed.dataset.edit));
+    const sl = e.target.closest('[data-slot]');
+    if (sl && !sl.disabled) openSlot(data.find((r) => r.id === +sl.dataset.slot));
+  });
+
+  /* ── 슬롯 추가: 일반 계정만 가능 (다른 권한은 + 버튼 비활성) ── */
+  const slotForm = document.getElementById('slotForm');
+  const slotSubmit = document.getElementById('slotSubmit');
+  const dot = (iso) => (iso ? `${iso.replace(/-/g, '. ')}.` : ''); // 2026-11-03 → 2026. 11. 03.
+  const slotStart = Blending.datePicker(slotForm.start, { mode: 'single', format: dot, onChange: syncSlot });
+  let slotTarget = null;
+  const posInt = (v) => /^\d+$/.test(v) && +v > 0;
+  // 종료일 = 시작일 + 일수 - 1 (예: 11.03 시작, 10일 → 11.12 종료)
+  function endDate(start, days) {
+    const d = new Date(`${start}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days - 1);
+    return d.toISOString().slice(0, 10);
+  }
+  function syncSlot() {
+    const start = slotForm.start.dataset.iso;
+    for (const name of ['qty', 'days']) slotForm[name].value = slotForm[name].value.replace(/\D/g, '');
+    const okDays = posInt(slotForm.days.value);
+    slotForm.end.value = start && okDays ? dot(endDate(start, +slotForm.days.value)) : '';
+    slotSubmit.disabled = !(posInt(slotForm.qty.value) && okDays && start);
+  }
+  slotForm.addEventListener('input', syncSlot);
+  function openSlot(row) {
+    slotTarget = row;
+    slotForm.reset();
+    slotForm.userId.value = row.userId;
+    slotForm.days.value = '10';
+    slotStart.set(null);
+    syncSlot();
+    openModal('slotModal');
+  }
+  slotForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (slotSubmit.disabled) return;
+    const qty = +slotForm.qty.value;
+    data = data.map((r) => (r.id === slotTarget.id ? { ...r, qty: r.qty + qty } : r));
+    table.set(data);
+    closeModal('slotModal');
+    toast(`슬롯 ${qty}개가 추가되었습니다.`);
+  });
+
+  /* ── 삭제 ── */
+  document.getElementById('btnDelete').addEventListener('click', async () => {
+    const sel = table.selected;
+    if (!sel.length) return toast('계정을 선택해주세요.', 'warning');
+    // 계정 삭제는 한 번에 하나만 (여러 개 선택 시 경고)
+    if (sel.length > 1) return toast('하나의 계정만 삭제할 수 있습니다.', 'warning');
+    const ok = await confirm({ message: '선택하신 계정을 삭제하시겠습니까?', desc: '삭제 후 복구는 불가능합니다.', ok: '삭제' });
+    if (!ok) return;
+    const gone = new Set(sel.map((r) => r.id));
+    data = data.filter((r) => !gone.has(r.id));
+    table.set(data);
+    toast('계정이 삭제되었습니다.');
+  });
+
+  /* ── 사이트 설정 ── */
+  // 광고 이용 시간: HH:MM ~ HH:MM, 4줄
+  const HOUR_LABELS = ['광고 오픈 시간', '광고 수정 가능 시간', '광고 삭제 가능 시간', '광고 연장 가능 시간'];
+  let openHours = [['00:00', '21:00'], ['00:00', '21:00'], ['00:00', '21:00'], ['00:00', '21:00']];
+  const siteForm = document.getElementById('siteForm');
+  const isTime = (v) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+  function renderSite() {
+    document.getElementById('siteRows').innerHTML = openHours.map(([from, to], i) => `
+      <div class="box" role="group" aria-labelledby="ohLabel${i}">
+        <span class="box-label" id="ohLabel${i}">${HOUR_LABELS[i]}</span>
+        <div class="time-range">
+          <div class="field"><input data-time="${i}-0" inputmode="numeric" maxlength="5" value="${from}" placeholder="00:00" aria-label="${HOUR_LABELS[i]} 시작"></div>
+          <span class="time-sep">~</span>
+          <div class="field"><input data-time="${i}-1" inputmode="numeric" maxlength="5" value="${to}" placeholder="00:00" aria-label="${HOUR_LABELS[i]} 종료"></div>
+        </div>
+      </div>`).join('');
+  }
+  // 숫자만 입력해도 HH:MM 형태로 맞춘다 (예: 2130 → 21:30)
+  siteForm.addEventListener('input', (e) => {
+    const inp = e.target.closest('[data-time]');
+    if (!inp) return;
+    const d = inp.value.replace(/\D/g, '').slice(0, 4);
+    inp.value = d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2)}` : d;
+    inp.closest('.field').classList.remove('is-invalid');
+  });
+  document.getElementById('btnSite').addEventListener('click', () => { renderSite(); openModal('siteModal'); });
+  siteForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ins = [...siteForm.querySelectorAll('[data-time]')];
+    const bad = ins.filter((inp) => !isTime(inp.value));
+    // 종료 시간이 시작 시간보다 빠르면 오류
+    for (let i = 0; i < ins.length; i += 2) if (!bad.includes(ins[i]) && !bad.includes(ins[i + 1]) && ins[i].value >= ins[i + 1].value) bad.push(ins[i + 1]);
+    ins.forEach((inp) => inp.closest('.field').classList.toggle('is-invalid', bad.includes(inp)));
+    if (bad.length) { bad[0].focus(); return toast('올바른 시간을 입력해주세요.', 'warning'); }
+    openHours = openHours.map((_, i) => [ins[i * 2].value, ins[i * 2 + 1].value]);
+    closeModal('siteModal');
+    toast('이용시간 설정이 완료되었습니다.');
+  });
+</script>
+</body>
+</html>

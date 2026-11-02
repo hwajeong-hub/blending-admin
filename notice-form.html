@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공지사항 등록 | BLENDING</title>
+<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+</head>
+<body>
+<div class="app" data-menu="notice">
+  <main class="contents">
+    <header class="page-header">
+      <h1 class="page-title">공지사항</h1>
+      <p class="page-desc">최신 공지사항을 확인할 수 있습니다.</p>
+    </header>
+
+    <form class="form" id="noticeForm" novalidate>
+      <div class="cb-stack">
+        <span class="box-label">고정</span>
+        <label class="cb"><input type="checkbox" name="pinned"><span class="cb-box"></span></label>
+      </div>
+      <div class="cb-stack">
+        <span class="box-label">팝업</span>
+        <label class="cb"><input type="checkbox" name="popup" id="popup"><span class="cb-box"></span></label>
+      </div>
+      <div class="box" id="popupBox" hidden>
+        <label class="box-label" for="popupRange">팝업 기간</label>
+        <div class="field">
+          <input id="popupRange" name="popupRange" placeholder="기간을 선택해주세요">
+          <i class="ic ic-calendar"></i>
+        </div>
+      </div>
+      <div class="box">
+        <label class="box-label" for="title">제목</label>
+        <div class="field">
+          <input id="title" name="title" placeholder="내용을 입력해주세요" maxlength="100">
+          <span class="req" aria-hidden="true">*</span>
+        </div>
+      </div>
+      <div class="box" style="width:100%">
+        <label class="box-label" for="body">내용</label>
+        <textarea class="textarea" id="body" name="body" placeholder="내용을 입력해주세요" style="height:300px"></textarea>
+      </div>
+      <div class="form-actions">
+        <a class="btn btn-line" href="notice.html">취소</a>
+        <button class="btn btn-primary" id="submit" disabled>추가</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script src="assets/blending.js?v=20261102105140"></script>
+<script src="assets/notice-store.js?v=20261102105140"></script>
+<script>
+  const form = document.getElementById('noticeForm');
+  const submit = document.getElementById('submit');
+  const id = Number(new URLSearchParams(location.search).get('id')) || null;
+  const editing = id && NoticeStore.get(id);
+
+  Blending.datePicker(form.popupRange);
+
+  if (editing) {
+    document.title = '공지사항 수정 | BLENDING';
+    form.pinned.checked = !!editing.pinned;
+    form.popup.checked = !!editing.popup;
+    form.popupRange.value = editing.popupRange || '';
+    form.title.value = editing.title;
+    form.body.value = editing.body || '';
+    submit.textContent = '저장';
+  }
+
+  // 필수값(제목·내용)을 채워야 확인 버튼이 활성화된다 (DESIGN.md §5)
+  function sync() {
+    document.getElementById('popupBox').hidden = !form.popup.checked;
+    submit.disabled = !form.title.value.trim() || !form.body.value.trim();
+  }
+  form.addEventListener('input', sync);
+  sync();
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (submit.disabled) return;
+    NoticeStore.upsert({
+      id: editing ? id : undefined,
+      title: form.title.value.trim(), body: form.body.value,
+      pinned: form.pinned.checked, popup: form.popup.checked, popupRange: form.popupRange.value,
+    });
+    sessionStorage.setItem('blending.toast', editing ? '공지사항이 수정되었습니다.' : '공지사항이 등록되었습니다.');
+    location.href = 'notice.html';
+  });
+</script>
+</body>
+</html>
