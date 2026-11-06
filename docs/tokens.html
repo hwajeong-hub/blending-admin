@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>토큰 레퍼런스 | BLENDING</title>
+<link rel="stylesheet" href="../assets/blending.css?v=20261106140000">
+<style>
+  /* 이 페이지도 토큰 규칙을 따른다: 크기·위치만 px, 나머지는 토큰 */
+  body { background:var(--bg-page); }
+  .doc { max-width:1080px; margin:0 auto; padding:var(--spacing-12) var(--layout-gutter) var(--spacing-20); display:flex; flex-direction:column; gap:var(--spacing-12); }
+  .doc-head { display:flex; flex-direction:column; gap:var(--spacing-2); }
+  .doc-head img { width:120px; height:auto; margin-bottom:var(--spacing-4); }
+  .doc-title { font-size:var(--text-heading1-size); line-height:var(--text-heading1-leading); font-weight:var(--font-weight-bold); }
+  .doc-lead { font-size:var(--text-body2-size); line-height:var(--text-body2-leading); color:var(--text-secondary); }
+  .doc-sec { display:flex; flex-direction:column; gap:var(--spacing-4); }
+  .doc-sec > h2 { font-size:var(--text-heading2-size); line-height:var(--text-heading2-leading); font-weight:var(--font-weight-medium); }
+  .doc-sec > p { font-size:var(--text-body3-size); line-height:var(--text-body3-leading); color:var(--text-secondary); }
+  .card { background:var(--bg-surface); border-radius:var(--radius-container); box-shadow:var(--shadow-low); padding:var(--spacing-6); }
+  .muted { color:var(--text-secondary); }
+  code, .mono { font-family:"SF Mono", Menlo, Consolas, monospace; font-size:var(--text-body4-size); line-height:var(--text-body4-leading); }
+
+  /* 진행 단계 */
+  .steps { display:grid; grid-template-columns:repeat(5, 1fr); gap:var(--spacing-3); }
+  .step { background:var(--bg-surface); border:1px solid var(--border-divider); border-radius:var(--radius-container); padding:var(--spacing-4); display:flex; flex-direction:column; gap:var(--spacing-2); }
+  .step.is-done { border-color:var(--border-brand); }
+  .step-no { font-size:var(--text-caption-size); line-height:var(--text-caption-leading); color:var(--text-secondary); }
+  .step-name { font-size:var(--text-body2-size); line-height:var(--text-body2-leading); font-weight:var(--font-weight-medium); }
+  .step-desc { font-size:var(--text-body4-size); line-height:var(--text-body4-leading); color:var(--text-secondary); }
+  .badge { align-self:flex-start; padding:var(--spacing-0-5) var(--spacing-2); border-radius:var(--radius-full); font-size:var(--text-caption-size); line-height:var(--text-caption-leading); font-weight:var(--font-weight-medium); background:var(--bg-disabled); color:var(--text-secondary); }
+  .is-done .badge { background:var(--bg-brand-light); color:var(--text-brand); }
+
+  /* 3층 구조 */
+  .layers { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:var(--spacing-3); align-items:stretch; }
+  .layer { background:var(--bg-surface); border-radius:var(--radius-container); box-shadow:var(--shadow-low); padding:var(--spacing-5); display:flex; flex-direction:column; gap:var(--spacing-2); }
+  .layer h3 { font-size:var(--text-body1-size); line-height:var(--text-body1-leading); font-weight:var(--font-weight-medium); }
+  .layer p { font-size:var(--text-body4-size); line-height:var(--text-body4-leading); color:var(--text-secondary); }
+  .arrow { align-self:center; color:var(--icon-tertiary); }
+  .chain { display:flex; flex-direction:column; gap:var(--spacing-2); }
+  .chain-row { display:flex; align-items:center; gap:var(--spacing-2); flex-wrap:wrap; background:var(--bg-surface); border:1px solid var(--border-divider); border-radius:var(--radius-panel); padding:var(--spacing-3) var(--spacing-4); }
+  .chain-row .sw { width:20px; height:20px; border-radius:var(--radius-element); border:1px solid var(--border-divider); flex:none; }
+  .chain-row .sep { color:var(--icon-tertiary); }
+  .chain-row .use { margin-left:auto; color:var(--text-secondary); font-size:var(--text-body4-size); line-height:var(--text-body4-leading); }
+
+  /* 스와치 */
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:var(--spacing-3); }
+  .swatch { background:var(--bg-surface); border:1px solid var(--border-divider); border-radius:var(--radius-panel); overflow:hidden; }
+  .swatch-color { height:48px; border-bottom:1px solid var(--border-divider); }
+  .swatch-meta { padding:var(--spacing-2) var(--spacing-3); display:flex; flex-direction:column; gap:var(--spacing-0-5); }
+  .swatch-meta .ref { color:var(--text-secondary); }
+  .group-title { font-size:var(--text-body3-size); line-height:var(--text-body3-leading); font-weight:var(--font-weight-medium); margin-top:var(--spacing-2); }
+
+  /* 표 형태 */
+  .rows { display:flex; flex-direction:column; }
+  .rows > div { display:grid; grid-template-columns:220px 1fr 180px; gap:var(--spacing-4); align-items:center; padding:var(--spacing-3) 0; border-bottom:1px solid var(--border-divider); }
+  .rows > div:last-child { border-bottom:0; }
+  .bar { height:16px; background:var(--bg-brand); border-radius:var(--radius-inner); }
+  .radius-box { width:72px; height:48px; background:var(--bg-brand-light); border:1px solid var(--border-brand); }
+  .z-bar { height:24px; background:var(--bg-brand-light); border-left:3px solid var(--border-brand); border-radius:var(--radius-inner); }
+
+  /* 비교 */
+  .compare { display:grid; grid-template-columns:1fr 1fr; gap:var(--spacing-4); }
+  .code { background:var(--bg-surface); border:1px solid var(--border-divider); border-radius:var(--radius-panel); overflow:hidden; }
+  .code-head { padding:var(--spacing-2) var(--spacing-4); border-bottom:1px solid var(--border-divider); font-size:var(--text-body4-size); line-height:var(--text-body4-leading); font-weight:var(--font-weight-medium); color:var(--text-secondary); background:var(--bg-page); }
+  .code pre { padding:var(--spacing-4); overflow:auto; white-space:pre; font-family:"SF Mono", Menlo, Consolas, monospace; font-size:var(--text-body4-size); line-height:var(--text-body4-leading); }
+  .hl-bad { background:var(--bg-danger); color:var(--status-error); border-radius:var(--radius-inner); }
+  .hl-good { background:var(--bg-brand-light-hover); color:var(--text-brand); border-radius:var(--radius-inner); }
+  .terminal { background:var(--text-primary); color:var(--bg-disabled); border-radius:var(--radius-panel); padding:var(--spacing-4); overflow:auto; white-space:pre; font-family:"SF Mono", Menlo, Consolas, monospace; font-size:var(--text-body4-size); line-height:var(--text-body4-leading); }
+  .terminal .prompt { color:var(--text-brand-hover); }
+
+  /* 변경 목록 */
+  .changes { display:grid; grid-template-columns:1fr 1fr; gap:var(--spacing-4); }
+  .change-list { display:flex; flex-direction:column; gap:var(--spacing-2); font-size:var(--text-body3-size); line-height:var(--text-body3-leading); }
+  .change-list li { display:flex; gap:var(--spacing-2); }
+  .change-list b { font-weight:var(--font-weight-medium); flex:none; width:72px; white-space:nowrap; }
+  .gap-demo { display:flex; flex-direction:column; gap:var(--spacing-3); }
+  .gap-demo .cta { width:280px; }
+  .gap-demo .label { font-size:var(--text-body4-size); line-height:var(--text-body4-leading); color:var(--text-secondary); }
+  .cta.is-old { gap:10px; /* token-ok: 이전 값 비교용 */ }
+
+  /* 규칙 */
+  .rules { display:grid; grid-template-columns:1fr 1fr; gap:var(--spacing-4); }
+  .rule { display:flex; flex-direction:column; gap:var(--spacing-2); font-size:var(--text-body3-size); line-height:var(--text-body3-leading); }
+  .rule h3 { font-size:var(--text-body2-size); line-height:var(--text-body2-leading); font-weight:var(--font-weight-medium); }
+  .rule.do h3 { color:var(--status-success); }
+  .rule.dont h3 { color:var(--status-error); }
+  .rule li { padding-left:var(--spacing-4); position:relative; }
+  .rule li::before { content:"·"; position:absolute; left:4px; color:var(--text-secondary); }
+
+  @media (max-width:767px) {
+    .doc { padding:var(--spacing-8) var(--spacing-4) var(--spacing-16); }
+    .steps { grid-template-columns:1fr 1fr; }
+    .layers { grid-template-columns:1fr; }
+    .arrow { transform:rotate(90deg); }
+    .compare, .changes, .rules { grid-template-columns:1fr; }
+    .rows > div { grid-template-columns:1fr; gap:var(--spacing-2); }
+  }
+</style>
+</head>
+<body>
+<main class="doc">
+
+  <header class="doc-head">
+    <img src="../assets/logo.svg" alt="BLENDING">
+    <h1 class="doc-title">디자인 토큰 레퍼런스</h1>
+    <p class="doc-lead">이 페이지는 <code>assets/blending.css</code>의 <code>:root</code>를 직접 읽어서 그립니다. 토큰을 고치면 이 페이지도 같이 바뀌니, 따로 손볼 필요가 없습니다.</p>
+  </header>
+
+  <!-- 진행 현황 -->
+  <section class="doc-sec">
+    <h2>진행 현황</h2>
+    <div class="steps">
+      <div class="step is-done"><span class="step-no">1단계</span><span class="step-name">토큰 정리</span><span class="step-desc">3층 구조, 간격·글자·모션·레이어 토큰 추가, 모서리 이름을 쓰는 자리 기준으로</span><span class="badge">완료</span></div>
+      <div class="step is-done"><span class="step-no">2단계</span><span class="step-name">하드코딩 제거</span><span class="step-desc">CSS 값과 인라인 스타일 11곳을 토큰·클래스로. 10→8, 30→32</span><span class="badge">완료</span></div>
+      <div class="step is-done"><span class="step-no">3단계</span><span class="step-name">검사 스크립트</span><span class="step-desc"><code>scripts/check-tokens.py</code> (2단계와 함께 진행)</span><span class="badge">완료</span></div>
+      <div class="step is-done"><span class="step-no">4단계</span><span class="step-name">문서 분리</span><span class="step-desc"><code>docs/foundation/</code> 8개 문서와 Do/Don't 표, DESIGN.md는 입구로</span><span class="badge">완료</span></div>
+      <div class="step is-done"><span class="step-no">5단계</span><span class="step-name">디자인 결정</span><span class="step-desc">Tertiary 진하게(5.07:1), 그림자 low·med·high, login.html 공통 CSS로</span><span class="badge">완료</span></div>
+    </div>
+  </section>
+
+  <!-- 3층 구조 -->
+  <section class="doc-sec">
+    <h2>토큰 3층 구조</h2>
+    <p>각 층은 바로 아래 층만 참조합니다. 화면과 컴포넌트는 ② Semantic을 쓰고, 원래 색 값(①)은 직접 쓰지 않습니다.</p>
+    <div class="layers">
+      <div class="layer"><span class="badge">①</span><h3>Primitive</h3><p>원래 값입니다. 이름은 생김새를 따릅니다.</p><code>--purple-500 · --gray-900</code></div>
+      <i class="ic ic-chevron-right ic-24 arrow"></i>
+      <div class="layer"><span class="badge">②</span><h3>Semantic</h3><p>용도 이름입니다. 모든 화면이 이 층을 씁니다.</p><code>--bg-brand · --spacing-4 · --radius-element</code></div>
+      <i class="ic ic-chevron-right ic-24 arrow"></i>
+      <div class="layer"><span class="badge">③</span><h3>Component</h3><p>한 컴포넌트 전용 값입니다.</p><code>--table-header-bg · --tooltip-bg</code></div>
+    </div>
+    <p>실제 연결 예시 (CSS에서 읽은 값)</p>
+    <div class="chain" id="chains"></div>
+  </section>
+
+  <!-- 색 -->
+  <section class="doc-sec">
+    <h2>Color</h2>
+    <p>Semantic 색은 모두 Primitive를 참조합니다. 카드 아래 회색 글씨는 참조하는 토큰입니다.</p>
+    <div id="colors"></div>
+  </section>
+
+  <!-- 글자 -->
+  <section class="doc-sec">
+    <h2>Typography</h2>
+    <p>스타일마다 <code>--text-*-size</code>와 <code>--text-*-leading</code>이 짝을 이루고, 굵기는 <code>--font-weight-*</code>에서 따로 고릅니다.</p>
+    <div class="card rows" id="type"></div>
+  </section>
+
+  <!-- 간격 -->
+  <section class="doc-sec">
+    <h2>Spacing</h2>
+    <p>4px 그리드입니다. 이름의 숫자에 4를 곱하면 px입니다 (<code>--spacing-1-5</code> = 6px). 스케일 밖 값은 쓰지 않습니다.</p>
+    <div class="card rows" id="spacing"></div>
+  </section>
+
+  <!-- 모서리 -->
+  <section class="doc-sec">
+    <h2>Radius</h2>
+    <p>크기가 아니라 <b>쓰는 자리</b>로 고릅니다.</p>
+    <div class="card rows" id="radius"></div>
+  </section>
+
+  <!-- 그림자·모션·레이어 -->
+  <section class="doc-sec">
+    <h2>Shadow · Motion · Layer</h2>
+    <div class="card rows" id="misc"></div>
+  </section>
+
+  <!-- 바뀐 것 -->
+  <section class="doc-sec">
+    <h2>2단계에서 화면이 바뀐 곳</h2>
+    <p>4px 그리드에서 벗어난 간격 두 가지를 맞췄습니다. 그 밖의 화면은 바꾸기 전과 계산된 스타일까지 같습니다 (9개 화면 × 1920·375).</p>
+    <div class="changes">
+      <div class="card">
+        <ul class="change-list">
+          <li><b>10 → 8</b><span class="muted">사이드바 메뉴 좌우, 페이지 번호·CTA·필터 행·프로필·달력 표시줄 간격, 파일선택 버튼</span></li>
+          <li><b>30 → 32</b><span class="muted">콘텐츠 섹션 위, 모달 위아래</span></li>
+          <li><b>4.36 → 4</b><span class="muted">달력 화살표 버튼 모서리 (눈으로는 구분되지 않음)</span></li>
+        </ul>
+      </div>
+      <div class="card gap-demo">
+        <span class="label">이전 CTA 간격 10px</span>
+        <div class="cta is-old"><button class="btn btn-line">취소</button><button class="btn btn-primary">확인</button></div>
+        <span class="label">지금 <code>--spacing-2</code> (8px)</span>
+        <div class="cta"><button class="btn btn-line">취소</button><button class="btn btn-primary">확인</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 코드 비교 -->
+  <section class="doc-sec">
+    <h2>코드는 이렇게 바뀌었습니다</h2>
+    <div class="compare">
+      <div class="code"><div class="code-head">이전 · .btn</div><pre>.btn {
+  height:var(--control-h);
+  padding:0 <span class="hl-bad">12px</span>;
+  gap:<span class="hl-bad">4px</span>;
+  border-radius:var(--<span class="hl-bad">r-sm</span>);
+  font-size:<span class="hl-bad">13px</span>;
+  line-height:<span class="hl-bad">20px</span>;
+  font-weight:<span class="hl-bad">500</span>;
+  transition:background <span class="hl-bad">.15s</span>;
+}</pre></div>
+      <div class="code"><div class="code-head">지금 · .btn</div><pre>.btn {
+  height:var(<span class="hl-good">--size-control</span>);
+  padding:0 var(<span class="hl-good">--spacing-3</span>);
+  gap:var(<span class="hl-good">--spacing-1</span>);
+  border-radius:var(<span class="hl-good">--radius-element</span>);
+  font-size:var(<span class="hl-good">--text-body3-size</span>);
+  line-height:var(<span class="hl-good">--text-body3-leading</span>);
+  font-weight:var(<span class="hl-good">--font-weight-medium</span>);
+  transition:background var(<span class="hl-good">--duration-fast</span>);
+}</pre></div>
+      <div class="code"><div class="code-head">이전 · campaign-summary.html</div><pre>&lt;section class="section"
+  <span class="hl-bad">style="padding-top:24px"</span>&gt;</pre></div>
+      <div class="code"><div class="code-head">지금 · 수정 클래스</div><pre>&lt;section class="section <span class="hl-good">is-summary</span>"&gt;
+
+/* blending.css */
+.tabs + .section.is-summary {
+  padding-top:var(--spacing-6);
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- 검사 -->
+  <section class="doc-sec">
+    <h2>검사 스크립트</h2>
+    <p>규칙을 어긴 곳을 <code>파일:줄</code>로 알려 주고, 위반이 있으면 실패로 끝납니다. login.html까지 공통 CSS로 옮겨서 지금은 위반이 없습니다.</p>
+<pre class="terminal"><span class="prompt">$</span> python3 scripts/check-tokens.py
+
+토큰 규칙 위반 없음</pre>
+  </section>
+
+  <!-- 규칙 -->
+  <section class="doc-sec">
+    <h2>규칙 요약</h2>
+    <div class="rules">
+      <div class="card rule do"><h3>Do</h3><ul>
+        <li>색·글자·간격·모서리·모션·레이어는 토큰으로 씁니다</li>
+        <li>스케일에 없는 값이 필요하면 디자인을 다시 보고, 그래도 필요하면 DESIGN.md에 먼저 추가합니다</li>
+        <li>화면마다 다른 여백은 수정 클래스로 만듭니다 (<code>.is-compact</code>, <code>.box-block</code>)</li>
+        <li>꼭 필요한 기하 값은 <code>/* token-ok: 이유 */</code>를 붙입니다</li>
+        <li>커밋 전에 검사 스크립트를 돌립니다</li>
+      </ul></div>
+      <div class="card rule dont"><h3>Don't</h3><ul>
+        <li>HEX나 <code>--purple-500</code> 같은 Primitive를 화면에서 바로 쓰지 않습니다</li>
+        <li>인라인 <code>style=""</code>을 쓰지 않습니다</li>
+        <li><code>10px</code>, <code>30px</code>처럼 그리드 밖 간격을 쓰지 않습니다</li>
+        <li>이유 없는 <code>token-ok</code> 예외를 두지 않습니다</li>
+        <li>width·height·top·left 말고는 px를 직접 쓰지 않습니다 (1px 테두리 제외)</li>
+      </ul></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  // blending.css의 :root 토큰을 읽는다 (원래 적힌 값 그대로)
+  const raw = {};
+  for (const sheet of document.styleSheets) {
+    if (!sheet.href || !sheet.href.includes('blending.css')) continue;
+    for (const rule of sheet.cssRules) {
+      if (rule.selectorText !== ':root' || rule.parentRule) continue;
+      for (const p of rule.style) if (p.startsWith('--')) raw[p] = rule.style.getPropertyValue(p).trim();
+    }
+  }
+  const css = getComputedStyle(document.documentElement);
+  const val = n => css.getPropertyValue(n).trim();
+  const ref = v => (v.match(/^var\((--[\w-]+)\)$/) || [])[1];
+  const keys = re => Object.keys(raw).filter(k => re.test(k));
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  // 연결 예시
+  const chainOf = n => { const out = [n]; let r; while ((r = ref(raw[out.at(-1)] || ''))) out.push(r); return out; };
+  const chains = document.getElementById('chains');
+  [['--table-header-bg', '테이블 헤더'], ['--bg-brand-hover', 'Primary 버튼 hover'], ['--text-secondary', '설명·폼 라벨'], ['--tooltip-bg', '툴팁 배경']].forEach(([n, use]) => {
+    const c = chainOf(n);
+    const row = el('div', 'chain-row');
+    const sw = el('span', 'sw'); sw.style.background = `var(${n})`; row.append(sw);
+    c.forEach((t, i) => { if (i) row.append(el('span', 'sep', '→')); row.append(el('code', '', t)); });
+    row.append(el('span', 'sep', '→'), el('code', '', esc(val(c.at(-1)))), el('span', 'use', use));
+    chains.append(row);
+  });
+
+  // 색
+  const colors = document.getElementById('colors');
+  const groups = [
+    ['① Primitive', /^--(purple|gray|blue|red|green|yellow)-\d+$/],
+    ['② Background', /^--bg-/], ['② Text', /^--text-(?!.*-(size|leading)$)(primary|secondary|tertiary|quaternary|disabled|inverse|brand)/],
+    ['② Border', /^--border-/], ['② Icon', /^--icon-/], ['② Status · Role', /^--(status|role)-/],
+    ['③ Component', /^--(table-header-bg|table-row-hover-bg|tooltip-bg|scrollbar-thumb)/],
+  ];
+  groups.forEach(([title, re]) => {
+    const ks = keys(re); if (!ks.length) return;
+    colors.append(el('div', 'group-title', title));
+    const grid = el('div', 'swatches');
+    ks.forEach(k => {
+      const s = el('div', 'swatch');
+      const c = el('div', 'swatch-color'); c.style.background = `var(${k})`;
+      const r = ref(raw[k]);
+      s.append(c, el('div', 'swatch-meta', `<code>${k}</code><code class="ref">${r ? r + ' · ' : ''}${esc(val(k))}</code>`));
+      grid.append(s);
+    });
+    colors.append(grid);
+  });
+
+  // 글자
+  const type = document.getElementById('type');
+  [['heading1', 'bold', '20 · Heading1 Bold', 'tight-leading'], ['heading1', 'regular', '페이지 제목'], ['heading2', 'medium', '모달 제목'],
+   ['body1', 'medium', '요약 값'], ['body2', 'regular', '토스트, 드롭다운 옵션'], ['body3', 'medium', '버튼 라벨'],
+   ['body3', 'regular', '페이지 설명, 탭'], ['body4', 'medium', '폼 라벨'], ['body4', 'regular', '테이블 셀'], ['caption', 'regular', '헬퍼, 각주']]
+    .forEach(([s, w, use, lead]) => {
+      const L = lead ? `--text-${s}-${lead}` : `--text-${s}-leading`;
+      const sample = el('span', '', '블렌딩 광고 관리 BLENDING 1,234');
+      sample.style.cssText = `font-size:var(--text-${s}-size);line-height:var(${L});font-weight:var(--font-weight-${w})`;
+      const row = el('div');
+      row.append(el('code', '', `--text-${s}<br><span class="muted">${val(`--text-${s}-size`)} / ${val(L)} · ${w}</span>`), sample, el('span', 'muted', use));
+      type.append(row);
+    });
+
+  // 간격
+  const sp = document.getElementById('spacing');
+  keys(/^--spacing-/).forEach(k => {
+    const row = el('div'); const bar = el('div', 'bar'); bar.style.width = `var(${k})`;
+    if (val(k) === '0') bar.style.background = 'none';
+    row.append(el('code', '', k), bar, el('code', 'muted', val(k)));
+    sp.append(row);
+  });
+
+  // 모서리
+  const useR = { inner: '프로그레스, 파일선택 버튼', element: '버튼, 인풋, 체크박스, Chip', item: '사이드바 메뉴, 아바타', panel: 'Text Area, 토글, 패널',
+    container: 'Summary, 테이블, 카드', overlay: '모달, 토스트', page: '로그인 카드', full: '알약' };
+  const rd = document.getElementById('radius');
+  keys(/^--radius-/).forEach(k => {
+    const row = el('div'); const b = el('div', 'radius-box'); b.style.borderRadius = `var(${k})`;
+    row.append(el('code', '', `${k}<br><span class="muted">${val(k)}</span>`), b, el('span', 'muted', useR[k.slice(9)] || ''));
+    rd.append(row);
+  });
+
+  // 그림자·모션·레이어
+  const misc = document.getElementById('misc');
+  keys(/^--(shadow-|focus-ring)/).forEach(k => {
+    const row = el('div'); const b = el('div', 'radius-box'); b.style.cssText = `border:0;background:var(--bg-surface);border-radius:var(--radius-panel);box-shadow:var(${k})`;
+    row.append(el('code', '', k), b, el('code', 'muted', esc(val(k))));
+    misc.append(row);
+  });
+  keys(/^--(duration|ease)-/).forEach(k => {
+    const row = el('div'); row.append(el('code', '', k), el('span', 'muted', ''), el('code', 'muted', esc(val(k)))); misc.append(row);
+  });
+  keys(/^--z-/).forEach(k => {
+    const row = el('div'); const b = el('div', 'z-bar'); b.style.width = `calc(var(${k}) * 1%)`;
+    row.append(el('code', '', k), b, el('code', 'muted', val(k))); misc.append(row);
+  });
+})();
+</script>
+</body>
+</html>

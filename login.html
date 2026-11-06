@@ -4,153 +4,69 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BLENDING 로그인</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="assets/blending.css?v=20261106150000">
 <style>
-  /* DESIGN.md §1 Foundation 토큰 */
-  :root {
-    --bg-page:#FBFBFB; --bg-surface:#FFFFFF; --bg-brand:#7740FE; --bg-brand-hover:#9065FC;
-    --bg-disabled:#F1F2F5;
-    --text-primary:#45484C; --text-secondary:#666666; --text-tertiary:#767B82;
-    --text-quaternary:#9398A0; --text-disabled:#C8CACE; --text-inverse:#FFFFFF;
-    --border-default:#C8CACE;
-    --status-error:#FF6868; --status-warning:#F59E0B; --status-success:#22A55B;
-    --r-sm:4px; --r-2xl:12px; --r-3xl:24px;
-    --shadow-1:2px 4px 20px rgba(0,0,0,.13);
-    --shadow-2:0 0 8px rgba(69,72,76,.08);
-    --focus-ring:0 0 0 2px #E8DFFF;
-    --control-h:40px;
+  /* 로그인 화면 틀만 여기에 둔다. 입력·체크박스·버튼·토스트는 공통 컴포넌트 (docs/layout.md 4.4) */
+  .login-page { min-height:100%; display:flex; align-items:center; justify-content:center; padding:var(--spacing-4); }
+  .login-card {
+    width:360px; padding:var(--spacing-12) var(--spacing-8);
+    background:var(--bg-surface); border-radius:var(--radius-page); box-shadow:var(--shadow-low);
+    display:flex; flex-direction:column; gap:var(--spacing-5);
   }
-  * { box-sizing:border-box; margin:0; }
-  html, body { height:100%; }
-  body {
-    background:var(--bg-page);
-    color:var(--text-primary);
-    font-family:Pretendard, -apple-system, "Apple SD Gothic Neo", sans-serif;
-    letter-spacing:-0.01em;
-    -webkit-font-smoothing:antialiased;
-  }
+  .login-head { display:flex; flex-direction:column; align-items:center; gap:var(--spacing-10); }
+  .login-logo { width:164px; height:25px; display:block; }
+  .login-fields { width:100%; display:flex; flex-direction:column; gap:var(--spacing-1-5); }
+  /* 비밀번호 칸과 16 띄운다 (fields gap 6 포함) */
+  .login-remember { margin-top:calc(var(--spacing-4) - var(--spacing-1-5)); width:max-content; }
 
-  /* §4.4 로그인: 화면 정가운데 카드 */
-  .page { min-height:100%; display:flex; align-items:center; justify-content:center; padding:16px; }
-  .card {
-    width:360px; padding:48px 30px;
-    background:var(--bg-surface); border-radius:var(--r-3xl); box-shadow:var(--shadow-1);
-    display:flex; flex-direction:column; gap:20px;
-  }
-  .head { display:flex; flex-direction:column; align-items:center; gap:40px; }
-  .logo { width:164px; height:25px; display:block; }
-  .fields { width:100%; display:flex; flex-direction:column; gap:6px; }
-
-  /* §3.2 Box = 라벨 + 인풋 */
-  .box { display:flex; flex-direction:column; gap:6px; }
-  .label { font-size:12px; line-height:18px; font-weight:500; color:var(--text-secondary); }
-  .input {
-    height:var(--control-h); padding:0 12px; width:100%;
-    background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--r-sm);
-    font:inherit; font-size:12px; line-height:18px; color:var(--text-primary); letter-spacing:inherit;
-    outline:none; transition:box-shadow .15s;
-  }
-  .input::placeholder { color:var(--text-quaternary); }
-  .input:hover, .input:focus { box-shadow:var(--focus-ring); }
-
-  /* §3.4 Checkbox Field */
-  .check { display:inline-flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer; user-select:none; width:max-content; }
-  .check input { position:absolute; opacity:0; pointer-events:none; }
-  .box16 {
-    width:16px; height:16px; border-radius:var(--r-sm);
-    background:var(--bg-surface); border:1px solid var(--border-default);
-    display:grid; place-items:center;
-  }
-  .box16 svg { width:12px; height:12px; display:none; }
-  .check input:checked + .box16 { background:var(--bg-brand); border-color:var(--bg-brand); }
-  .check input:checked + .box16 svg { display:block; }
-  .check input:focus-visible + .box16 { box-shadow:var(--focus-ring); }
-  .check-label { font-size:12px; line-height:18px; color:var(--text-tertiary); }
-
-  /* §3.1 Button / Primary */
-  .btn {
-    height:var(--control-h); padding:0 12px; width:100%;
-    border:0; border-radius:var(--r-sm); cursor:pointer;
-    font:inherit; font-size:13px; line-height:20px; font-weight:500; letter-spacing:inherit;
-    background:var(--bg-brand); color:var(--text-inverse);
-    transition:background .15s;
-  }
-  .btn:hover { background:var(--bg-brand-hover); }
-  .btn:focus-visible { outline:none; box-shadow:var(--focus-ring); }
-  .btn:disabled { background:var(--bg-disabled); color:var(--text-disabled); cursor:not-allowed; }
-
-  /* §3.8 Toast: 상단 가운데, top 20 */
-  .toast {
-    position:fixed; top:20px; left:50%; transform:translate(-50%, -12px);
-    width:312px; max-width:calc(100% - 32px); min-height:60px; padding:16px 20px;
-    display:flex; align-items:center; gap:16px;
-    background:var(--bg-surface); border-radius:var(--r-2xl); box-shadow:var(--shadow-2);
-    font-size:14px; line-height:21px; color:var(--text-tertiary);
-    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
-  }
-  .toast.show { opacity:1; transform:translate(-50%, 0); }
-  .toast svg { width:28px; height:28px; flex:none; }
-  .toast.warning svg { color:var(--status-warning); }
-  .toast.success svg { color:var(--status-success); }
-
-  /* §4.3 Mobile: 카드 없이 화면 전체 */
-  @media (max-width:599px) {
-    .page { align-items:flex-start; padding:0; }
-    .card {
-      width:100%; min-height:100vh; padding:150px 16px 40px;
+  /* Mobile(≤767): 카드 없이 화면 전체 */
+  @media (max-width:767px) {
+    .login-page { align-items:flex-start; padding:0; }
+    .login-card {
+      width:100%; min-height:100vh; padding:150px var(--spacing-4) var(--spacing-10); /* token-ok: 모바일 로고 위치 150 (피그마) */
       background:transparent; border-radius:0; box-shadow:none;
     }
   }
 </style>
 </head>
 <body>
-  <main class="page">
-    <form class="card" id="loginForm" novalidate>
-      <div class="head">
-        <img class="logo" src="assets/logo.svg" alt="BLENDING">
-        <div class="fields">
-          <div class="box">
-            <label class="label" for="userId">아이디</label>
-            <input class="input" id="userId" name="userId" type="text" autocomplete="username" placeholder="내용을 입력해주세요">
+  <main class="login-page">
+    <form class="login-card" id="loginForm" novalidate>
+      <div class="login-head">
+        <img class="login-logo" src="assets/logo.svg" alt="BLENDING">
+        <div class="login-fields">
+          <div class="box box-block">
+            <label class="box-label" for="userId">아이디</label>
+            <div class="field"><input id="userId" name="userId" type="text" autocomplete="username" placeholder="내용을 입력해주세요"></div>
           </div>
-          <div class="box">
-            <label class="label" for="userPw">비밀번호</label>
-            <input class="input" id="userPw" name="userPw" type="password" autocomplete="current-password" placeholder="내용을 입력해주세요">
+          <div class="box box-block">
+            <label class="box-label" for="userPw">비밀번호</label>
+            <div class="field">
+              <input id="userPw" name="userPw" type="password" autocomplete="current-password" placeholder="내용을 입력해주세요">
+              <button class="field-icon-btn" id="pwToggle" type="button" aria-pressed="false" aria-label="비밀번호 보기"><i class="ic ic-eye-off"></i></button>
+            </div>
           </div>
-          <label class="check">
+          <label class="cb login-remember">
             <input type="checkbox" id="rememberId">
-            <span class="box16" aria-hidden="true">
-              <svg viewBox="0 0 16 16" fill="none"><path d="M3.33 8l3.34 3.33 6.66-6.66" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span class="check-label">아이디 기억하기</span>
+            <span class="cb-box" aria-hidden="true"></span>
+            <span class="cb-label">아이디 기억하기</span>
           </label>
         </div>
       </div>
-      <button class="btn" type="submit">로그인</button>
+      <button class="btn btn-primary btn-block" type="submit">로그인</button>
     </form>
   </main>
 
-  <div class="toast warning" id="toast" role="status" aria-live="polite">
-    <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3333"/><path d="M8 4.667V8M8 10.667h.007" stroke="currentColor" stroke-width="1.3333" stroke-linecap="round"/></svg>
-    <span id="toastMsg"></span>
-  </div>
-
+<script src="assets/blending.js?v=20261102105140"></script>
 <script>
   const form = document.getElementById('loginForm');
   const idInput = document.getElementById('userId');
   const pwInput = document.getElementById('userPw');
   const remember = document.getElementById('rememberId');
-  const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
+  const submitBtn = form.querySelector('button[type="submit"]');
   const KEY = 'blending.rememberId';
-  let toastTimer;
-
-  function showToast(msg) {
-    toastMsg.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
-  }
+  const warn = (msg) => Blending.toast(msg, 'warning');
+  const fieldOf = (input) => input.closest('.field');
 
   // 아이디 기억하기
   try {
@@ -162,12 +78,27 @@
   // 프로토타입: 비밀번호가 "fail"이면 실패 토스트, 그 외에는 공지사항으로 이동합니다.
   async function login(id, pw) { return pw !== 'fail'; }
 
+  // 비밀번호 보기/숨기기
+  const pwToggle = document.getElementById('pwToggle');
+  pwToggle.addEventListener('click', () => {
+    const show = pwInput.type === 'password';
+    pwInput.type = show ? 'text' : 'password';
+    pwToggle.setAttribute('aria-pressed', String(show));
+    pwToggle.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 보기');
+    pwToggle.querySelector('.ic').className = `ic ${show ? 'ic-eye' : 'ic-eye-off'}`;
+  });
+
+  // 다시 입력하면 Invalid 해제
+  [idInput, pwInput].forEach((el) => el.addEventListener('input', () => fieldOf(el).classList.remove('is-invalid')));
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = idInput.value.trim();
     const pw = pwInput.value;
     if (!id || !pw) {
-      showToast('아이디와 비밀번호를 입력해주세요.');
+      if (!id) fieldOf(idInput).classList.add('is-invalid');
+      if (!pw) fieldOf(pwInput).classList.add('is-invalid');
+      warn('아이디와 비밀번호를 입력해주세요.');
       (!id ? idInput : pwInput).focus();
       return;
     }
@@ -175,8 +106,14 @@
       if (remember.checked) localStorage.setItem(KEY, id);
       else localStorage.removeItem(KEY);
     } catch (e) {}
+    submitBtn.disabled = true;
     const ok = await login(id, pw);
-    if (!ok) return showToast('아이디 또는 비밀번호가 일치하지 않습니다.');
+    submitBtn.disabled = false;
+    if (!ok) {
+      pwInput.value = '';
+      pwInput.focus();
+      return warn('아이디 또는 비밀번호가 일치하지 않습니다.');
+    }
     location.href = 'notice.html';
   });
 </script>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>캠페인 관리 | BLENDING</title>
-<link rel="stylesheet" href="assets/blending.css?v=20261102105140">
+<link rel="stylesheet" href="assets/blending.css?v=20261106150000">
 </head>
 <body>
 <div class="app" data-menu="campaign" data-sub="campaign-manage">
@@ -19,7 +19,7 @@
       <a class="tab" href="campaign-settle.html">정산관리</a>
     </nav>
 
-    <section class="section" id="manageList" style="padding-top:16px">
+    <section class="section" id="manageList">
       <div class="toolbar">
         <label class="field date-range">
           <input id="regDate" placeholder="연도. 월. 일." aria-label="등록일">
@@ -42,9 +42,9 @@
   <form class="modal" role="dialog" aria-modal="true" aria-labelledby="answerTitle" id="answerForm" novalidate>
     <h2 class="modal-title" id="answerTitle">정답 수정</h2>
     <button type="button" class="modal-close" data-close aria-label="닫기"><i class="ic ic-close"></i></button>
-    <div class="box" style="width:100%">
+    <div class="box box-block">
       <div class="field"><input name="answer" aria-label="정답"></div>
-      <p class="box-helper" style="margin-top:14px">저장을 누르면 즉시 반영됩니다.</p>
+      <p class="box-helper is-detached">저장을 누르면 즉시 반영됩니다.</p>
     </div>
     <div class="cta">
       <button type="button" class="btn btn-line" data-close>닫기</button>
