@@ -22,7 +22,7 @@
 | | `Grayscale/500` | `--gray-500` | `#E3E6EB` |
 | | `Grayscale/600` | `--gray-600` | `#C8CACE` |
 | | `Grayscale/700` | `--gray-700` | `#9398A0` |
-| | `Grayscale/800` | `--gray-800` | `#6A6F75` ← 2026-11-06 `#767B82`에서 변경 (피그마 갱신 필요) |
+| | `Grayscale/800` | `--gray-800` | `#6A6F75` ← 2026-11-06 `#767B82`에서 변경 (피그마 반영 완료) |
 | | `Grayscale/850` | `--gray-850` | `#666666` |
 | | `Grayscale/900` | `--gray-900` | `#45484C` |
 | Blue | `Blue/100` | `--blue-100` | `#FAFCFE` |

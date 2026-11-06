@@ -92,6 +92,6 @@
 - 소속 드롭다운의 검색 기능(피그마 Dropdown은 검색 포함, 프로토타입은 기본 선택 상자)
 - 로딩 로고 깜빡임 애니메이션 (피그마는 정지 화면)
 - 상품 URL·가격비교 URL 실제 주소 형식
-- 피그마 `Grayscale/800`을 `#6A6F75`로, 그림자 스타일을 `Shadow/Low·Med·High`로 갱신 ([Color](docs/foundation/color.md), [Elevation](docs/foundation/elevation.md))
+- 피그마에 남은 그리드 밖 간격: 모바일 공지사항 메뉴 화면 Body 좌우 10, 단가설정 패널 input wrap 간격 10 — 코드와 대응되는 값이 없어 그대로 둠
 - `.modal-note` 행간 22 (스케일 밖)
 
